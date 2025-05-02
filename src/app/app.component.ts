@@ -1,6 +1,11 @@
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
 import { ProgressionListComponent } from './chord-progressions/progression-list/progression-list.component';
 import { AlgorithmSelectorComponent } from './chord-progressions/algorithm-selector/algorithm-selector.component';
 import { ScoreDisplayComponent } from './score-display/score-display.component';
@@ -12,8 +17,13 @@ import { ChordProgressionsService } from './chord-progressions/chord-progression
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss'],
   imports: [
-    FormsModule,
     CommonModule,
+    FormsModule,
+    MatButtonModule,
+    MatCardModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSelectModule,
     ProgressionListComponent,
     AlgorithmSelectorComponent,
     ScoreDisplayComponent,
@@ -24,7 +34,7 @@ import { ChordProgressionsService } from './chord-progressions/chord-progression
 export class AppComponent {
   title = 'Chord Progressions App';
   selectedTonality: string = 'C';
-  selectedAlgorithm: string = 'Encadeamento das triades tonais';
+  selectedAlgorithm: string = 'Encadeamento das tríades tonais';
   selectedFormation: string = 'piano';
   progressionLength: number = 4;
   generateClicked: boolean = false;

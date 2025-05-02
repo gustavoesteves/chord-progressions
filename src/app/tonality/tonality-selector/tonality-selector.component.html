@@ -1,13 +1,8 @@
-<div style="margin-bottom: 20px; text-align: center;">
-    <label for="tonalitySelect">Tonality: </label>
-    <select
-      id="tonalitySelect"
-      [(ngModel)]="selectedTonality"
-      (ngModelChange)="onTonalityChange()"
-      style="padding: 5px; font-size: 16px;"
-    >
-      <option *ngFor="let tonality of tonalities" [value]="tonality">
-        {{ tonality }}
-      </option>
-    </select>
-  </div>
+<div class="selector-wrapper">
+  <label for="tonalitySelect" class="custom-label">Tonality:</label>
+  <select id="tonalitySelect" [(ngModel)]="selectedTonality" (ngModelChange)="onTonalityChange()" class="custom-select">
+    <option *ngFor="let tonality of tonalities" [value]="tonality">
+      {{ tonality }}
+    </option>
+  </select>
+</div>

@@ -1,61 +1,46 @@
-<div style="padding: 20px;">
-  <app-tonality-selector (keyChanged)="onKeyChange($event)"></app-tonality-selector>
-  <app-algorithm-selector (algorithmChanged)="onAlgorithmChange($event)"></app-algorithm-selector>
-  
-  <div style="margin-bottom: 20px; text-align: center;">
-    <label for="progressionLength">Progression Length: </label>
-    <input
-      id="progressionLength"
-      type="number"
-      min="3"
-      max="10"
-      [(ngModel)]="progressionLength"
-      (ngModelChange)="generateClicked = false; progressions = []; currentProgression = null; currentProgressionIndex = 0; progressionGenerator = null"
-      style="padding: 5px; font-size: 16px; width: 60px;"
-    >
-    <label for="formationSelect" style="margin-left: 20px;">Formation: </label>
-    <select
-      id="formationSelect"
-      [(ngModel)]="selectedFormation"
-      (ngModelChange)="onFormationChange()"
-      style="padding: 5px; font-size: 16px;"
-    >
-      <option *ngFor="let formation of formations" [value]="formation">
-        {{ formation }}
-      </option>
-    </select>
-    <button
-      (click)="onGenerate()"
-      style="margin-left: 10px; padding: 5px 10px; font-size: 16px;"
-    >
-      Generate Progression
-    </button>
+<div class="container">
+  <h1 class="app-title">Chord Progressions App</h1>
+
+  <div class="controls-section">
+    <div class="selectors-section">
+      <app-tonality-selector (keyChanged)="onKeyChange($event)"></app-tonality-selector>
+      <app-algorithm-selector (algorithmChanged)="onAlgorithmChange($event)"></app-algorithm-selector>
+    </div>
+
+    <div class="controls">
+      <label for="progressionLength" class="custom-label">Progression Length:</label>
+      <input id="progressionLength" type="number" min="3" max="10" [(ngModel)]="progressionLength"
+        (ngModelChange)="generateClicked = false; progressions = []; currentProgression = null; currentProgressionIndex = 0; progressionGenerator = null"
+        class="custom-input">
+      <label for="formationSelect" class="custom-label">Formation:</label>
+      <select id="formationSelect" [(ngModel)]="selectedFormation" (ngModelChange)="onFormationChange()"
+        class="custom-select">
+        <option *ngFor="let formation of formations" [value]="formation">
+          {{ formation }}
+        </option>
+      </select>
+      <button mat-raised-button class="generate-button" (click)="onGenerate()">
+        Generate Progression
+      </button>
+    </div>
   </div>
 
-  <div *ngIf="generateClicked" style="text-align: center; margin-bottom: 20px;">
-    <button
-      (click)="loadPreviousProgression()"
-      [disabled]="currentProgressionIndex <= 0"
-      style="padding: 5px 10px; font-size: 16px; margin-right: 10px;"
-    >
-      Previous Progression
-    </button>
-    <button
-      (click)="loadNextProgression()"
-      style="padding: 5px 10px; font-size: 16px;"
-    >
-      Next Progression
-    </button>
-  </div>
+  <div *ngIf="generateClicked && currentProgression" class="results-section">
+    <div class="progression-section">
+      <app-progression-list [progressions]="[currentProgression]"></app-progression-list>
+      <div class="navigation-buttons">
+        <button mat-raised-button class="nav-button" (click)="loadPreviousProgression()"
+          [disabled]="currentProgressionIndex <= 0">
+          Previous Progression
+        </button>
+        <button mat-raised-button class="nav-button" (click)="loadNextProgression()">
+          Next Progression
+        </button>
+      </div>
+    </div>
 
-  <app-progression-list
-    *ngIf="generateClicked && currentProgression"
-    [progressions]="[currentProgression]"
-  ></app-progression-list>
-  
-  <app-score-display
-    *ngIf="generateClicked && currentProgression"
-    [progression]="currentProgression"
-    [formation]="selectedFormation"
-  ></app-score-display>
+    <div class="score-section">
+      <app-score-display [progression]="currentProgression" [formation]="selectedFormation"></app-score-display>
+    </div>
+  </div>
 </div>

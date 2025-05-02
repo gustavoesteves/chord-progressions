@@ -1,6 +1,9 @@
-<div style="margin-bottom: 20px; text-align: center;">
-    <label for="algorithmSelector">Select Algorithm: </label>
-    <select id="algorithmSelector" [value]="selectedAlgorithm" (change)="onAlgorithmChange($event)">
-      <option *ngFor="let algorithm of availableAlgorithms" [value]="algorithm">{{ algorithm }}</option>
-    </select>
-  </div>
+<div class="selector-wrapper">
+  <label for="algorithmSelect" class="custom-label">Algorithm:</label>
+  <select id="algorithmSelect" [(ngModel)]="selectedAlgorithm" (change)="onAlgorithmChange($event)"
+    class="custom-select">
+    <option *ngFor="let algorithm of availableAlgorithms" [value]="algorithm">
+      {{ algorithm }}
+    </option>
+  </select>
+</div>

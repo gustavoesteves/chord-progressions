@@ -4,7 +4,9 @@ import * as Vex from 'vexflow';
 
 @Component({
   selector: 'app-score-display',
-  template: '<div #scoreContainer style="width: 100%; overflow-x: auto;"></div>',
+  template: `
+    <div #scoreContainer></div>
+  `,
   styleUrls: ['./score-display.component.scss'],
   standalone: true,
   imports: [CommonModule]
@@ -48,31 +50,31 @@ export class ScoreDisplayComponent implements AfterViewInit, OnChanges {
     }
 
     this.context.clear();
-    const { notes, roman } = this.progression;
+    const { notes } = this.progression;
     if (!notes || notes.length === 0) {
       console.error('No notes to render:', notes);
       return;
     }
 
     const staveWidth = 150 * notes.length;
-    const height = this.formation === 'piano' ? 300 : this.formation === 'violão' ? 200 : 500;
+    const height = this.formation === 'piano' ? 350 : this.formation === 'violão' ? 200 : 550;
     this.renderer.resize(staveWidth + 50, height);
 
     if (this.formation === 'piano') {
-      this.renderPianoScore(notes, roman);
+      this.renderPianoScore(notes);
     } else if (this.formation === 'violão') {
-      this.renderGuitarScore(notes, roman);
+      this.renderGuitarScore(notes);
     } else if (this.formation === 'quarteto de cordas') {
-      this.renderStringQuartetScore(notes, roman);
+      this.renderStringQuartetScore(notes);
     } else if (this.formation === 'quarteto vocal') {
-      this.renderVocalQuartetScore(notes, roman);
+      this.renderVocalQuartetScore(notes);
     }
   }
 
-  private renderPianoScore(notes: string[][], roman: string[]): void {
-    const staveTreble = new this.VF.Stave(10, 0, 150 * notes.length);
+  private renderPianoScore(notes: string[][]): void {
+    const staveTreble = new this.VF.Stave(10, 20, 150 * notes.length);
     staveTreble.addClef('treble').setContext(this.context).draw();
-    const staveBass = new this.VF.Stave(10, 150, 150 * notes.length);
+    const staveBass = new this.VF.Stave(10, 180, 150 * notes.length);
     staveBass.addClef('bass').setContext(this.context).draw();
 
     const voicesTreble: any[] = [];
@@ -85,16 +87,11 @@ export class ScoreDisplayComponent implements AfterViewInit, OnChanges {
       }
 
       const duration = 'w';
-      const keysTreble = [chordNotes[2], chordNotes[1]]; // Quinta e terça na clave de sol
-      const keysBass = [chordNotes[3], chordNotes[0]];   // Fundamental duplicada e fundamental na clave de fá
+      const keysTreble = [chordNotes[2], chordNotes[1]];
+      const keysBass = [chordNotes[3], chordNotes[0]];
 
       const chordTreble = new this.VF.StaveNote({ clef: 'treble', keys: keysTreble, duration });
       const chordBass = new this.VF.StaveNote({ clef: 'bass', keys: keysBass, duration });
-
-      const annotation = new this.VF.Annotation(roman[index])
-        .setVerticalJustification(this.VF.Annotation.VerticalJustify.TOP)
-        .setFont('Arial', 12, 'bold');
-      chordTreble.addModifier(annotation);
 
       voicesTreble.push(chordTreble);
       voicesBass.push(chordBass);
@@ -111,21 +108,20 @@ export class ScoreDisplayComponent implements AfterViewInit, OnChanges {
     const formatterBass = new this.VF.Formatter().joinVoices([voiceBass]).format([voiceBass], 150 * notes.length);
     voiceBass.draw(this.context, staveBass);
 
-    // Adicionar barras de compasso manualmente
     for (let i = 1; i < notes.length; i++) {
       const xPosition = 10 + i * 150;
       this.context.beginPath();
-      this.context.moveTo(xPosition, 0);
-      this.context.lineTo(xPosition, 150);
+      this.context.moveTo(xPosition, staveTreble.getYForLine(0)); // Linha superior da clave de sol
+      this.context.lineTo(xPosition, staveTreble.getYForLine(4)); // Linha inferior da clave de sol
       this.context.stroke();
-      this.context.moveTo(xPosition, 150);
-      this.context.lineTo(xPosition, 300);
+      this.context.moveTo(xPosition, staveBass.getYForLine(0)); // Linha superior da clave de fá
+      this.context.lineTo(xPosition, staveBass.getYForLine(4)); // Linha inferior da clave de fá
       this.context.stroke();
     }
   }
 
-  private renderGuitarScore(notes: string[][], roman: string[]): void {
-    const stave = new this.VF.Stave(10, 0, 150 * notes.length);
+  private renderGuitarScore(notes: string[][]): void {
+    const stave = new this.VF.Stave(10, 20, 150 * notes.length);
     stave.addClef('treble').setContext(this.context).draw();
 
     const voices: any[] = [];
@@ -139,10 +135,6 @@ export class ScoreDisplayComponent implements AfterViewInit, OnChanges {
       const keys = [chordNotes[0]];
       const chord = new this.VF.StaveNote({ clef: 'treble', keys, duration })
         .addModifier(new this.VF.Annotation(chordNotes.join('-')));
-      const romanAnnotation = new this.VF.Annotation(roman[index])
-        .setVerticalJustification(this.VF.Annotation.VerticalJustify.TOP)
-        .setFont('Arial', 12, 'bold');
-      chord.addModifier(romanAnnotation);
       voices.push(chord);
     });
 
@@ -151,24 +143,23 @@ export class ScoreDisplayComponent implements AfterViewInit, OnChanges {
     const formatter = new this.VF.Formatter().joinVoices([voice]).format([voice], 150 * notes.length);
     voice.draw(this.context, stave);
 
-    // Adicionar barras de compasso manualmente
     for (let i = 1; i < notes.length; i++) {
       const xPosition = 10 + i * 150;
       this.context.beginPath();
-      this.context.moveTo(xPosition, 0);
-      this.context.lineTo(xPosition, 100);
+      this.context.moveTo(xPosition, stave.getYForLine(0)); // Linha superior
+      this.context.lineTo(xPosition, stave.getYForLine(4)); // Linha inferior
       this.context.stroke();
     }
   }
 
-  private renderStringQuartetScore(notes: string[][], roman: string[]): void {
-    const staveViolin1 = new this.VF.Stave(10, 0, 150 * notes.length);
+  private renderStringQuartetScore(notes: string[][]): void {
+    const staveViolin1 = new this.VF.Stave(10, 20, 150 * notes.length);
     staveViolin1.addClef('treble').setContext(this.context).draw();
-    const staveViolin2 = new this.VF.Stave(10, 100, 150 * notes.length);
+    const staveViolin2 = new this.VF.Stave(10, 120, 150 * notes.length);
     staveViolin2.addClef('treble').setContext(this.context).draw();
-    const staveViola = new this.VF.Stave(10, 200, 150 * notes.length);
+    const staveViola = new this.VF.Stave(10, 220, 150 * notes.length);
     staveViola.addClef('alto').setContext(this.context).draw();
-    const staveCello = new this.VF.Stave(10, 300, 150 * notes.length);
+    const staveCello = new this.VF.Stave(10, 320, 150 * notes.length);
     staveCello.addClef('bass').setContext(this.context).draw();
 
     const voicesViolin1: any[] = [];
@@ -187,11 +178,6 @@ export class ScoreDisplayComponent implements AfterViewInit, OnChanges {
       const noteViolin2 = new this.VF.StaveNote({ clef: 'treble', keys: [chordNotes[2]], duration });
       const noteViola = new this.VF.StaveNote({ clef: 'alto', keys: [chordNotes[1]], duration });
       const noteCello = new this.VF.StaveNote({ clef: 'bass', keys: [chordNotes[0]], duration });
-
-      const romanAnnotation = new this.VF.Annotation(roman[index])
-        .setVerticalJustification(this.VF.Annotation.VerticalJustify.TOP)
-        .setFont('Arial', 12, 'bold');
-      noteViolin1.addModifier(romanAnnotation);
 
       voicesViolin1.push(noteViolin1);
       voicesViolin2.push(noteViolin2);
@@ -217,33 +203,32 @@ export class ScoreDisplayComponent implements AfterViewInit, OnChanges {
     const formatterCello = new this.VF.Formatter().joinVoices([voiceCello]).format([voiceCello], 150 * notes.length);
     voiceCello.draw(this.context, staveCello);
 
-    // Adicionar barras de compasso manualmente
     for (let i = 1; i < notes.length; i++) {
       const xPosition = 10 + i * 150;
       this.context.beginPath();
-      this.context.moveTo(xPosition, 0);
-      this.context.lineTo(xPosition, 100);
+      this.context.moveTo(xPosition, staveViolin1.getYForLine(0));
+      this.context.lineTo(xPosition, staveViolin1.getYForLine(4));
       this.context.stroke();
-      this.context.moveTo(xPosition, 100);
-      this.context.lineTo(xPosition, 200);
+      this.context.moveTo(xPosition, staveViolin2.getYForLine(0));
+      this.context.lineTo(xPosition, staveViolin2.getYForLine(4));
       this.context.stroke();
-      this.context.moveTo(xPosition, 200);
-      this.context.lineTo(xPosition, 300);
+      this.context.moveTo(xPosition, staveViola.getYForLine(0));
+      this.context.lineTo(xPosition, staveViola.getYForLine(4));
       this.context.stroke();
-      this.context.moveTo(xPosition, 300);
-      this.context.lineTo(xPosition, 400);
+      this.context.moveTo(xPosition, staveCello.getYForLine(0));
+      this.context.lineTo(xPosition, staveCello.getYForLine(4));
       this.context.stroke();
     }
   }
 
-  private renderVocalQuartetScore(notes: string[][], roman: string[]): void {
-    const staveSoprano = new this.VF.Stave(10, 0, 150 * notes.length);
+  private renderVocalQuartetScore(notes: string[][]): void {
+    const staveSoprano = new this.VF.Stave(10, 20, 150 * notes.length);
     staveSoprano.addClef('treble').setContext(this.context).draw();
-    const staveAlto = new this.VF.Stave(10, 100, 150 * notes.length);
+    const staveAlto = new this.VF.Stave(10, 120, 150 * notes.length);
     staveAlto.addClef('treble').setContext(this.context).draw();
-    const staveTenor = new this.VF.Stave(10, 200, 150 * notes.length);
+    const staveTenor = new this.VF.Stave(10, 220, 150 * notes.length);
     staveTenor.addClef('treble').setContext(this.context).draw();
-    const staveBass = new this.VF.Stave(10, 300, 150 * notes.length);
+    const staveBass = new this.VF.Stave(10, 320, 150 * notes.length);
     staveBass.addClef('bass').setContext(this.context).draw();
 
     const voicesSoprano: any[] = [];
@@ -262,11 +247,6 @@ export class ScoreDisplayComponent implements AfterViewInit, OnChanges {
       const noteAlto = new this.VF.StaveNote({ clef: 'treble', keys: [chordNotes[2]], duration });
       const noteTenor = new this.VF.StaveNote({ clef: 'treble', keys: [chordNotes[1]], duration });
       const noteBass = new this.VF.StaveNote({ clef: 'bass', keys: [chordNotes[0]], duration });
-
-      const romanAnnotation = new this.VF.Annotation(roman[index])
-        .setVerticalJustification(this.VF.Annotation.VerticalJustify.TOP)
-        .setFont('Arial', 12, 'bold');
-      noteSoprano.addModifier(romanAnnotation);
 
       voicesSoprano.push(noteSoprano);
       voicesAlto.push(noteAlto);
@@ -292,21 +272,20 @@ export class ScoreDisplayComponent implements AfterViewInit, OnChanges {
     const formatterBass = new this.VF.Formatter().joinVoices([voiceBass]).format([voiceBass], 150 * notes.length);
     voiceBass.draw(this.context, staveBass);
 
-    // Adicionar barras de compasso manualmente
     for (let i = 1; i < notes.length; i++) {
       const xPosition = 10 + i * 150;
       this.context.beginPath();
-      this.context.moveTo(xPosition, 0);
-      this.context.lineTo(xPosition, 100);
+      this.context.moveTo(xPosition, staveSoprano.getYForLine(0));
+      this.context.lineTo(xPosition, staveSoprano.getYForLine(4));
       this.context.stroke();
-      this.context.moveTo(xPosition, 100);
-      this.context.lineTo(xPosition, 200);
+      this.context.moveTo(xPosition, staveAlto.getYForLine(0));
+      this.context.lineTo(xPosition, staveAlto.getYForLine(4));
       this.context.stroke();
-      this.context.moveTo(xPosition, 200);
-      this.context.lineTo(xPosition, 300);
+      this.context.moveTo(xPosition, staveTenor.getYForLine(0));
+      this.context.lineTo(xPosition, staveTenor.getYForLine(4));
       this.context.stroke();
-      this.context.moveTo(xPosition, 300);
-      this.context.lineTo(xPosition, 400);
+      this.context.moveTo(xPosition, staveBass.getYForLine(0));
+      this.context.lineTo(xPosition, staveBass.getYForLine(4));
       this.context.stroke();
     }
   }

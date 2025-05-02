@@ -1,0 +1,155 @@
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.app-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1976d2; // Azul escuro
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.controls-section {
+  padding: 20px;
+  background-color: #f0f4f8; // Fundo azul claro
+  border-radius: 8px;
+  margin-bottom: 30px;
+}
+
+.selectors-section {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  align-items: center;
+}
+
+.custom-label {
+  font-size: 16px;
+  font-weight: 500;
+  color: #333;
+}
+
+.custom-input {
+  padding: 8px;
+  font-size: 16px;
+  width: 60px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  transition: border-color 0.3s ease;
+}
+
+.custom-input:focus {
+  outline: none;
+  border-color: #1976d2; // Azul escuro
+}
+
+.custom-select {
+  padding: 8px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: #fff;
+  transition: border-color 0.3s ease;
+}
+
+.custom-select:focus {
+  outline: none;
+  border-color: #1976d2; // Azul escuro
+}
+
+.generate-button {
+  background-color: #1976d2 !important; // Azul escuro
+  color: #ffffff !important;
+  transition: background-color 0.3s ease;
+}
+
+.generate-button:hover {
+  background-color: #1565c0 !important; // Azul mais escuro
+}
+
+.results-section {
+  padding: 20px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+}
+
+.progression-section {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.navigation-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.nav-button {
+  background-color: #ffb300 !important; // Dourado
+  color: #000000 !important;
+  transition: background-color 0.3s ease;
+}
+
+.nav-button:hover {
+  background-color: #ffa000 !important; // Dourado mais escuro
+}
+
+.nav-button[disabled] {
+  background-color: #cccccc !important;
+  color: #666666 !important;
+}
+
+.score-section {
+  padding: 20px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .selectors-section {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .custom-input,
+  .custom-select {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .progression-section {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .navigation-buttons {
+    flex-direction: column;
+  }
+
+  .nav-button {
+    width: 100%;
+  }
+}

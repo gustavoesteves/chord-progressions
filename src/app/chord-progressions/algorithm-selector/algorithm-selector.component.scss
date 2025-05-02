@@ -1,12 +1,25 @@
-div {
-  font-family: Arial, sans-serif;
+.selector-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
 
-  label {
-    margin-right: 10px;
-  }
+.custom-label {
+  font-size: 16px;
+  font-weight: 500;
+  color: #333;
+}
 
-  select {
-    padding: 5px;
-    font-size: 16px;
-  }
+.custom-select {
+  padding: 8px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: #fff;
+  transition: border-color 0.3s ease;
+}
+
+.custom-select:focus {
+  outline: none;
+  border-color: #1976d2; // Azul escuro
 }

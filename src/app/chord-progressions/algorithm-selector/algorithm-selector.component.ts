@@ -1,5 +1,6 @@
 import { Component, EventEmitter, Output, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ChordProgressionsService } from '../chord-progressions.service';
 
 @Component({
@@ -7,7 +8,7 @@ import { ChordProgressionsService } from '../chord-progressions.service';
   templateUrl: './algorithm-selector.component.html',
   styleUrls: ['./algorithm-selector.component.scss'],
   standalone: true,
-  imports: [CommonModule]
+  imports: [CommonModule, FormsModule]
 })
 export class AlgorithmSelectorComponent implements OnInit {
   availableAlgorithms: string[] = [];
