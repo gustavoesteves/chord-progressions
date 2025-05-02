@@ -57,3 +57,12 @@ Angular CLI does not come with an end-to-end testing framework by default. You c
 ## Additional Resources
 
 For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+
+
+vamos criar nosso proximo algoritmo que se chamara "Encadeamento com tríades invertidas". 
+Regras: 
+- materemos as mesmas regras do primeiro algoritmo "Encadeamento das tríades tonais"
+- apesar das regras do primeiro algoritmo serem as mesmas, vamos considerar que acordes no estado fundamental, primeira inversão e segunda inversão não são o mesmo acorde, ou seja, qualquer acorde pode aparecer em uma progressão novamente desde que ainda não tenha aparecido
+- qualquer acorde pode ser substituido por sua primeira inversão (ou seja a terça no baixo, no caso de Dó maior C/E), menos o primeiro e ultimo acorde (que é o acorde de I grau)
+- para o acorde com a segunda inversão (ou seja a quinta no baixo, no caso de Dó maior C/G) não podera ser precedido de um acorde com qualquer inversão
+- para o acorde com a segunda inversão pode ser seguido por acordes no estado fundamental e primeira inversão
