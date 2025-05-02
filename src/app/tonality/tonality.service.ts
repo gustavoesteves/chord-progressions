@@ -56,11 +56,15 @@ export class TonalityService {
         if (chord.endsWith('7')) return chord.replace('7', '');
         return chord;
       });
+      // Mapear os graus para numerais romanos sem inversões
       romanBase = degreeIndex === 0 ? 'I' :
-                  degreeIndex === 3 ? 'IV' :
-                  degreeIndex === 4 ? 'V' :
+        degreeIndex === 1 ? 'ii' :
+          degreeIndex === 2 ? 'iii' :
+            degreeIndex === 3 ? 'IV' :
+              degreeIndex === 4 ? 'V' :
+                degreeIndex === 5 ? 'vi' :
                   degreeIndex === 6 ? 'vii°' :
-                  `ii${degreeIndex + 1}`; // ii, iii, vi
+                    degree;
     } else {
       const scaleNotes = Scale.get(`${tonality} harmonic minor`).notes;
       const chordTypes = ['m', 'dim', '', 'm', '', '', 'dim'];
@@ -69,12 +73,13 @@ export class TonalityService {
         return `${note}${type}`;
       });
       romanBase = degreeIndex === 0 ? 'i' :
-                  degreeIndex === 1 ? 'ii°' :
-                  degreeIndex === 2 ? 'III' :
-                  degreeIndex === 3 ? 'iv' :
-                  degreeIndex === 4 ? 'V' :
-                  degreeIndex === 5 ? 'VI' :
-                  'vii°';
+        degreeIndex === 1 ? 'ii°' :
+          degreeIndex === 2 ? 'III' :
+            degreeIndex === 3 ? 'iv' :
+              degreeIndex === 4 ? 'V' :
+                degreeIndex === 5 ? 'VI' :
+                  degreeIndex === 6 ? 'vii°' :
+                    degree;
     }
 
     const chord = chords[degreeIndex];

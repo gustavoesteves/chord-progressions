@@ -35,7 +35,6 @@ import { VoiceLeadingService } from './chord-progressions/voice-leading/voice-le
   standalone: true
 })
 export class AppComponent {
-  title = 'Chord Progressions App';
   selectedTonality: string = 'C';
   selectedAlgorithm: string = 'Encadeamento das tríades tonais';
   selectedFormation: string = 'piano';
@@ -52,7 +51,6 @@ export class AppComponent {
     private chordProgressionsService: ChordProgressionsService,
     private voiceLeadingService: VoiceLeadingService
   ) {
-    // Inicializar o algorithmIndex com base no algoritmo selecionado
     this.updateAlgorithmIndex();
   }
 

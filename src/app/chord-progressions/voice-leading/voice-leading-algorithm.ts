@@ -27,6 +27,7 @@ export class VoiceLeadingAlgorithm implements VoiceLeadingAlgorithmInterface {
 
     for (let i = 0; i < progression.notes.length; i++) {
       const notes = progression.notes[i];
+      const romanNumeral = progression.roman[i];
 
       // Extrair fundamental, terça e quinta do acorde
       const fundamental = notes[0].split('/')[0]; // Ex.: C
@@ -110,13 +111,25 @@ export class VoiceLeadingAlgorithm implements VoiceLeadingAlgorithmInterface {
         return `${noteName}/${octave}`;
       };
 
-      // Atribuir o baixo, ajustando a oitava para minimizar a distância
+      // Atribuir o baixo, considerando inversões indicadas pelo numeral romano
+      let baixoNote: string;
+      if (romanNumeral.includes('6')) {
+        // Segunda inversão (ex.: V6): o baixo deve ser a quinta do acorde
+        baixoNote = fifth;
+      } else if (romanNumeral.includes('3')) {
+        // Primeira inversão (ex.: ii3): o baixo deve ser a terça do acorde
+        baixoNote = third;
+      } else {
+        // Posição fundamental: o baixo é a fundamental do acorde
+        baixoNote = fundamental;
+      }
+
       if (!previousVoices) {
-        voices.baixo = adjustOctave(notes[0].split('/')[0] + '/3', tessitura.baixo.min, tessitura.baixo.max, 'baixo');
+        voices.baixo = adjustOctave(baixoNote + '/3', tessitura.baixo.min, tessitura.baixo.max, 'baixo');
       } else {
         const prevBaixo = previousVoices.baixo;
         voices.baixo = adjustOctave(
-          notes[0].split('/')[0] + '/3',
+          baixoNote + '/3',
           tessitura.baixo.min,
           tessitura.baixo.max,
           'baixo',
@@ -125,12 +138,11 @@ export class VoiceLeadingAlgorithm implements VoiceLeadingAlgorithmInterface {
       }
 
       // Determinar as notas disponíveis para as outras vozes (excluindo o baixo)
-      const baixoNote = voices.baixo.split('/')[0];
-      const remainingNotesForOtherVoices = availableNotes.filter(note => note !== baixoNote);
-      if (remainingNotesForOtherVoices.length < 3) {
-        // Se houver menos de 3 notas disponíveis, duplicar uma nota (priorizar a fundamental ou quinta)
-        const extraNote = availableNotes.includes(fundamental) ? fundamental : fifth;
-        remainingNotesForOtherVoices.push(extraNote);
+      const baixoNoteName = voices.baixo.split('/')[0];
+      const remainingNotesForOtherVoices = availableNotes.filter(note => note !== baixoNoteName);
+      // Sempre duplicar a fundamental do acorde para ter 3 notas disponíveis
+      while (remainingNotesForOtherVoices.length < 3) {
+        remainingNotesForOtherVoices.push(fundamental);
       }
 
       if (!previousVoices) {
@@ -141,15 +153,15 @@ export class VoiceLeadingAlgorithm implements VoiceLeadingAlgorithmInterface {
       } else {
         // Identificar notas comuns entre o acorde anterior e o atual
         const previousNotes = [
-          { note: previousVoices.soprano.split('/')[0], voice: 'soprano' },
-          { note: previousVoices.contralto.split('/')[0], voice: 'contralto' },
-          { note: previousVoices.tenor.split('/')[0], voice: 'tenor' }
-        ];
+          { note: previousVoices.soprano?.split('/')[0], voice: 'soprano' },
+          { note: previousVoices.contralto?.split('/')[0], voice: 'contralto' },
+          { note: previousVoices.tenor?.split('/')[0], voice: 'tenor' }
+        ].filter(item => item.note !== undefined); // Filtra entradas undefined
         const currentNotes = remainingNotesForOtherVoices;
 
         const commonNotes: { note: string, previousVoice: string }[] = [];
         previousNotes.forEach(({ note, voice }) => {
-          if (currentNotes.includes(note)) {
+          if (note && currentNotes.includes(note)) {
             commonNotes.push({ note, previousVoice: voice });
           }
         });
@@ -159,7 +171,7 @@ export class VoiceLeadingAlgorithm implements VoiceLeadingAlgorithmInterface {
         for (const { note, previousVoice } of commonNotes) {
           if (!assignedNotes.has(note) && !voices[previousVoice as keyof Voices]) {
             voices[previousVoice as keyof Voices] = adjustOctave(
-              note + '/' + previousVoices![previousVoice as keyof Voices].split('/')[1],
+              note + '/' + (previousVoices![previousVoice as keyof Voices]?.split('/')[1] || '4'),
               tessitura[previousVoice as keyof typeof tessitura].min,
               tessitura[previousVoice as keyof typeof tessitura].max,
               previousVoice,
@@ -175,7 +187,7 @@ export class VoiceLeadingAlgorithm implements VoiceLeadingAlgorithmInterface {
 
         // Garantir que o tenor prefira a quinta, se ainda não atribuído
         const tenorIndex = remainingVoices.indexOf('tenor');
-        if (tenorIndex !== -1) {
+        if (tenorIndex !== -1 && remainingNotes.length > 0) {
           const fifthNote = fifth;
           if (remainingNotes.includes(fifthNote)) {
             voices.tenor = adjustOctave(
@@ -193,6 +205,10 @@ export class VoiceLeadingAlgorithm implements VoiceLeadingAlgorithmInterface {
 
         // Atualizar as notas restantes após atribuir o tenor
         remainingVoices.forEach((voice, idx) => {
+          if (remainingNotes.length === 0) {
+            // Se não houver notas restantes, usar a fundamental como fallback
+            remainingNotes.push(fundamental);
+          }
           const previousNote = previousVoices![voice as keyof Voices];
           const distances = remainingNotes.map(note => ({
             note: note + '/' + (voice === 'soprano' || voice === 'contralto' ? '4' : '3'),
