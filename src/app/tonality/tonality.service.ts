@@ -39,10 +39,10 @@ export class TonalityService {
     return degreeIndex;
   }
 
-  getChordForDegree(degree: string, tonality: string, mode: string): { chord: string, roman: string, notes: string[] } {
+  getChordForDegree(degree: string, tonality: string, mode: string): { chord: string, roman: string, notes: string[], functions: string[] } {
     const degreeIndex = this.getDegreeIndex(degree);
     if (degreeIndex === -1) {
-      return { chord: degree, roman: degree, notes: [] };
+      return { chord: degree, roman: degree, notes: [], functions: [] };
     }
 
     let chords: readonly string[];
@@ -56,7 +56,6 @@ export class TonalityService {
         if (chord.endsWith('7')) return chord.replace('7', '');
         return chord;
       });
-      // Mapear os graus para numerais romanos sem inversões
       romanBase = degreeIndex === 0 ? 'I' :
         degreeIndex === 1 ? 'ii' :
           degreeIndex === 2 ? 'iii' :
@@ -86,13 +85,19 @@ export class TonalityService {
     const roman = romanBase;
     const baseNotes = Chord.get(chord).notes.slice(0, 3); // Pegar apenas as 3 primeiras notas (tríade)
     const notes = [
-      `${baseNotes[0]}/3`, // Fundamental na oitava 3
-      `${baseNotes[1]}/4`, // Terça na oitava 4
-      `${baseNotes[2]}/4`, // Quinta na oitava 4
-      `${baseNotes[0]}/4`  // Fundamental duplicada na oitava 4
+      baseNotes[0], // Fundamental
+      baseNotes[1], // Terça
+      baseNotes[2], // Quinta
+      baseNotes[0]  // Fundamental duplicada
+    ];
+    const functions = [
+      'fundamental',
+      'third',
+      'fifth',
+      'fundamental'
     ];
 
-    console.log(`Chord for degree ${degree} in ${tonality} ${mode}: ${chord}, Roman: ${roman}, Notes: ${notes}`);
-    return { chord, roman, notes };
+    console.log(`Chord for degree ${degree} in ${tonality} ${mode}: ${chord}, Roman: ${roman}, Notes: ${notes}, Functions: ${functions}`);
+    return { chord, roman, notes, functions };
   }
 }

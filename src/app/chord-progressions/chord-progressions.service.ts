@@ -8,7 +8,7 @@ import { VoiceLeadingService } from './voice-leading/voice-leading.service';
   providedIn: 'root'
 })
 export class ChordProgressionsService {
-  private algorithms: ProgressionAlgorithm[] = [];
+  private algorithms: ProgressionAlgorithm[];
 
   constructor(
     tonalTriadAlgorithm: TonalTriadProgressionAlgorithm,
@@ -18,17 +18,24 @@ export class ChordProgressionsService {
     this.algorithms = [tonalTriadAlgorithm, invertedTriadAlgorithm];
   }
 
-  getAvailableAlgorithms(): string[] {
-    return this.algorithms.map(algorithm => algorithm.name);
+  getAvailableAlgorithms(): ProgressionAlgorithm[] {
+    return this.algorithms;
   }
 
-  getProgressionsGenerator(tonality: string, algorithmName: string, progressionLength: number): Generator<{ roman: string[], transposed: string[], notes: string[][], voices?: { soprano: string, contralto: string, tenor: string, baixo: string }[] }, void, undefined> {
-    const algorithm = this.algorithms.find(alg => alg.name === algorithmName);
-    if (!algorithm) {
-      console.error(`Algorithm ${algorithmName} not found.`);
-      return (function*() {})();
-    }
-
+  getProgressionsGenerator(
+    tonality: string,
+    progressionLength: number,
+    algorithm: ProgressionAlgorithm
+  ): Generator<
+    {
+      roman: string[];
+      transposed: string[];
+      notes: string[][];
+      voices?: { soprano: string; contralto: string; tenor: string; baixo: string }[];
+    },
+    void,
+    undefined
+  > {
     const progressions = algorithm.generateProgressions(tonality, progressionLength);
     if (Array.isArray(progressions)) {
       return this.generateFromArray(progressions);
@@ -37,23 +44,49 @@ export class ChordProgressionsService {
     }
   }
 
-  private *generateFromArray(progressions: { roman: string[], transposed: string[], notes: string[][] }[]): Generator<{ roman: string[], transposed: string[], notes: string[][], voices?: { soprano: string, contralto: string, tenor: string, baixo: string }[] }, void, undefined> {
+  private *generateFromArray(
+    progressions: { roman: string[]; transposed: string[]; notes: string[][]; functions: string[][] }[]
+  ): Generator<
+    {
+      roman: string[];
+      transposed: string[];
+      notes: string[][];
+      voices?: { soprano: string; contralto: string; tenor: string; baixo: string }[];
+    },
+    void,
+    undefined
+  > {
     for (const progression of progressions) {
       const voices = this.voiceLeadingService.applyVoiceLeading(progression);
       yield {
-        ...progression,
+        roman: progression.roman,
+        transposed: progression.transposed,
+        notes: progression.notes,
         voices
       };
     }
   }
 
-  private *generateFromIterator(progressions: Iterator<{ roman: string[], transposed: string[], notes: string[][] }>): Generator<{ roman: string[], transposed: string[], notes: string[][], voices?: { soprano: string, contralto: string, tenor: string, baixo: string }[] }, void, undefined> {
+  private *generateFromIterator(
+    progressions: Iterator<{ roman: string[]; transposed: string[]; notes: string[][]; functions: string[][] }>
+  ): Generator<
+    {
+      roman: string[];
+      transposed: string[];
+      notes: string[][];
+      voices?: { soprano: string; contralto: string; tenor: string; baixo: string }[];
+    },
+    void,
+    undefined
+  > {
     let next = progressions.next();
     while (!next.done) {
       const progression = next.value;
       const voices = this.voiceLeadingService.applyVoiceLeading(progression);
       yield {
-        ...progression,
+        roman: progression.roman,
+        transposed: progression.transposed,
+        notes: progression.notes,
         voices
       };
       next = progressions.next();

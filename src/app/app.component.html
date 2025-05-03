@@ -36,7 +36,11 @@
         <button mat-raised-button class="nav-button" (click)="loadNextProgression()">
           Next Progression
         </button>
-        <app-music-xml-export [progression]="currentProgression" [formation]="selectedFormation" [algorithmIndex]="algorithmIndex"></app-music-xml-export>
+        <button mat-raised-button class="nav-button" (click)="regenerateVoiceLeading()">
+          Regenerate Voice-Leading
+        </button>
+        <app-music-xml-export [progression]="currentProgression" [formation]="selectedFormation"
+          [algorithmIndex]="algorithmIndex"></app-music-xml-export>
       </div>
     </div>
 

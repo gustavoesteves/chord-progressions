@@ -7,15 +7,15 @@ import { Chord } from '@tonaljs/tonal';
   providedIn: 'root'
 })
 export class TonalTriadProgressionAlgorithm implements ProgressionAlgorithm {
-  name = 'Encadeamento das triades tonais';
+  name = 'Encadeamento das tríades tonais';
+  private targetLength: number = 0;
 
   constructor(private tonalityService: TonalityService) {}
 
   private hasCommonNote(chord1: string, chord2: string): boolean {
     const chordNotes1 = Chord.get(chord1).notes.slice(0, 3);
     const chordNotes2 = Chord.get(chord2).notes.slice(0, 3);
-
-    const commonNotes = chordNotes1.some((note: string) => chordNotes2.includes(note));
+    const commonNotes = chordNotes1.some(note => chordNotes2.includes(note));
     if (!commonNotes) {
       console.log(`No common notes between ${chord1} (${chordNotes1}) and ${chord2} (${chordNotes2})`);
     }
@@ -29,10 +29,10 @@ export class TonalTriadProgressionAlgorithm implements ProgressionAlgorithm {
     const [lastDegree] = lastChord.split('/');
     const [nextDegree] = nextChord.split('/');
 
-    const isLastChord = progression.length === this.targetLength - 1 && nextChord === "I";
+    const isLastChord = progression.length === this.targetLength - 1 && nextChord === 'I';
     if (!isLastChord) {
       const chordWithoutInversion = progression.map(chord => chord.split('/')[0]);
-      if (nextDegree !== "I" && chordWithoutInversion.slice(1).includes(nextDegree)) {
+      if (nextDegree !== 'I' && chordWithoutInversion.slice(1).includes(nextDegree)) {
         const existingChord = progression.find(chord => {
           const [degree, inversion] = chord.split('/');
           return degree === nextDegree && inversion === undefined;
@@ -50,20 +50,18 @@ export class TonalTriadProgressionAlgorithm implements ProgressionAlgorithm {
       return false;
     }
 
-    if (lastDegree === "vii*") {
-      const isValid = nextDegree === "iii";
+    if (lastDegree === 'vii*') {
+      const isValid = nextDegree === 'iii';
       if (!isValid) console.log(`vii* deve ser seguido por iii, mas encontrou ${nextChord}`);
       return isValid;
     }
-    if (nextDegree === "vii*" && !["ii", "IV"].includes(lastDegree)) {
+    if (nextDegree === 'vii*' && !['ii', 'IV'].includes(lastDegree)) {
       console.log(`vii* deve ser precedido por ii ou IV, mas foi precedido por ${lastChord}`);
       return false;
     }
 
     return true;
   }
-
-  private targetLength: number = 0;
 
   private generateProgressionsRecursive(
     currentProgression: string[],
@@ -73,10 +71,10 @@ export class TonalTriadProgressionAlgorithm implements ProgressionAlgorithm {
   ): string[][] {
     if (currentProgression.length === targetLength - 2) {
       const allProgressions: string[][] = [];
-      if (remainingChords.includes("V") && this.isValidProgression(currentProgression, "V", tonality)) {
-        const newProgression = [...currentProgression, "V"];
-        if (this.isValidProgression(newProgression, "I", tonality)) {
-          allProgressions.push([...newProgression, "I"]);
+      if (remainingChords.includes('V') && this.isValidProgression(currentProgression, 'V', tonality)) {
+        const newProgression = [...currentProgression, 'V'];
+        if (this.isValidProgression(newProgression, 'I', tonality)) {
+          allProgressions.push([...newProgression, 'I']);
         }
       }
       return allProgressions;
@@ -84,17 +82,17 @@ export class TonalTriadProgressionAlgorithm implements ProgressionAlgorithm {
 
     const allProgressions: string[][] = [];
     const lastChord = currentProgression[currentProgression.length - 1];
-    if (lastChord === "vii*") {
-      if (remainingChords.includes("iii")) {
-        const newProgression = [...currentProgression, "iii"];
-        const newRemaining = remainingChords.filter(chord => chord !== "iii");
+    if (lastChord === 'vii*') {
+      if (remainingChords.includes('iii')) {
+        const newProgression = [...currentProgression, 'iii'];
+        const newRemaining = remainingChords.filter(chord => chord !== 'iii');
         allProgressions.push(...this.generateProgressionsRecursive(newProgression, newRemaining, targetLength, tonality));
       }
       return allProgressions;
     }
 
     for (const nextChord of remainingChords) {
-      if (currentProgression.length === 0 && nextChord !== "I") continue;
+      if (currentProgression.length === 0 && nextChord !== 'I') continue;
       if (this.isValidProgression(currentProgression, nextChord, tonality)) {
         const newProgression = [...currentProgression, nextChord];
         const newRemaining = remainingChords.filter(chord => chord !== nextChord);
@@ -104,10 +102,13 @@ export class TonalTriadProgressionAlgorithm implements ProgressionAlgorithm {
     return allProgressions;
   }
 
-  generateProgressions(tonality: string, progressionLength: number): { roman: string[], transposed: string[], notes: string[][] }[] {
+  generateProgressions(
+    tonality: string,
+    progressionLength: number
+  ): { roman: string[]; transposed: string[]; notes: string[][]; functions: string[][] }[] {
     this.targetLength = progressionLength;
-    const allChords = ["ii", "iii", "IV", "V", "vi", "vii*"];
-    const allProgressions = this.generateProgressionsRecursive(["I"], allChords, progressionLength, tonality);
+    const allChords = ['ii', 'iii', 'IV', 'V', 'vi', 'vii*'];
+    const allProgressions = this.generateProgressionsRecursive(['I'], allChords, progressionLength, tonality);
 
     return allProgressions.map(progression => {
       const roman = progression.map(degree => {
@@ -122,11 +123,28 @@ export class TonalTriadProgressionAlgorithm implements ProgressionAlgorithm {
         const data = this.tonalityService.getChordForDegree(degree, tonality, 'maior');
         return data.notes;
       });
-      console.log(`Roman: ${roman.join(' -> ')}, Transposed: ${transposed.join(' -> ')}, Notes: ${notes.map(n => n.join('-')).join(' -> ')}`);
+      const functions = progression.map(degree => {
+        const functionMap: { [key: string]: string } = {
+          I: 'T',
+          ii: 'SD',
+          iii: 'T',
+          IV: 'SD',
+          V: 'D',
+          vi: 'T',
+          'vii*': 'D'
+        };
+        return [functionMap[degree] || 'T'];
+      });
+      console.log(
+        `Roman: ${roman.join(' -> ')}, Transposed: ${transposed.join(' -> ')}, Notes: ${notes
+          .map(n => n.join('-'))
+          .join(' -> ')}, Functions: ${functions.map(f => f.join('-')).join(' -> ')}`
+      );
       return {
         roman,
         transposed,
-        notes
+        notes,
+        functions
       };
     });
   }

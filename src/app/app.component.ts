@@ -13,6 +13,7 @@ import { MusicXmlExportComponent } from './score-display/music-xml-export.compon
 import { TonalitySelectorComponent } from './tonality/tonality-selector/tonality-selector.component';
 import { ChordProgressionsService } from './chord-progressions/chord-progressions.service';
 import { VoiceLeadingService } from './chord-progressions/voice-leading/voice-leading.service';
+import { ProgressionAlgorithm } from './chord-progressions/progression-algorithm.interface';
 
 @Component({
   selector: 'app-root',
@@ -36,14 +37,36 @@ import { VoiceLeadingService } from './chord-progressions/voice-leading/voice-le
 })
 export class AppComponent {
   selectedTonality: string = 'C';
-  selectedAlgorithm: string = 'Encadeamento das tríades tonais';
+  selectedAlgorithm: ProgressionAlgorithm | null = null;
   selectedFormation: string = 'piano';
   progressionLength: number = 4;
   generateClicked: boolean = false;
-  progressions: { roman: string[], transposed: string[], notes: string[][], voices?: { soprano: string, contralto: string, tenor: string, baixo: string }[] }[] = [];
-  currentProgression: { roman: string[], transposed: string[], notes: string[][], voices?: { soprano: string, contralto: string, tenor: string, baixo: string }[] } | null = null;
+  progressions: {
+    roman: string[];
+    transposed: string[];
+    notes: string[][];
+    functions?: string[][];
+    voices?: { soprano: string; contralto: string; tenor: string; baixo: string }[];
+  }[] = [];
+  currentProgression: {
+    roman: string[];
+    transposed: string[];
+    notes: string[][];
+    functions?: string[][];
+    voices?: { soprano: string; contralto: string; tenor: string; baixo: string }[];
+  } | null = null;
   currentProgressionIndex: number = 0;
-  progressionGenerator: Generator<{ roman: string[], transposed: string[], notes: string[][], voices?: { soprano: string, contralto: string, tenor: string, baixo: string }[] }, void, undefined> | null = null;
+  progressionGenerator: Generator<
+    {
+      roman: string[];
+      transposed: string[];
+      notes: string[][];
+      functions?: string[][];
+      voices?: { soprano: string; contralto: string; tenor: string; baixo: string }[];
+    },
+    void,
+    undefined
+  > | null = null;
   formations: string[] = ['piano', 'violão', 'quarteto de cordas', 'quarteto vocal'];
   algorithmIndex: number = 0;
 
@@ -63,7 +86,7 @@ export class AppComponent {
     this.progressionGenerator = null;
   }
 
-  onAlgorithmChange(algorithm: string): void {
+  onAlgorithmChange(algorithm: ProgressionAlgorithm): void {
     this.selectedAlgorithm = algorithm;
     this.updateAlgorithmIndex();
     this.generateClicked = false;
@@ -84,10 +107,12 @@ export class AppComponent {
     this.progressions = [];
     this.currentProgression = null;
     this.currentProgressionIndex = 0;
+    if (!this.selectedAlgorithm) return;
+
     this.progressionGenerator = this.chordProgressionsService.getProgressionsGenerator(
       this.selectedTonality,
-      this.selectedAlgorithm,
-      this.progressionLength
+      this.progressionLength,
+      this.selectedAlgorithm
     );
     this.loadNextProgression();
   }
@@ -96,20 +121,55 @@ export class AppComponent {
     if (!this.progressionGenerator) return;
     const next = this.progressionGenerator.next();
     if (!next.done && next.value) {
-      this.progressions.push(next.value);
+      const inputProgression = {
+        roman: next.value.roman,
+        transposed: next.value.transposed,
+        notes: next.value.notes,
+        functions: next.value.functions || []
+      };
+      const voices = this.voiceLeadingService.applyVoiceLeading(inputProgression);
+      console.log('New progression voices:', JSON.stringify(voices)); // Log para depurar
+      const progression = {
+        ...inputProgression,
+        voices
+      };
+      this.progressions.push(progression);
       this.currentProgressionIndex = this.progressions.length - 1;
-      this.currentProgression = next.value;
+      this.currentProgression = { ...this.progressions[this.currentProgressionIndex] }; // Nova referência
     }
   }
 
   loadPreviousProgression(): void {
     if (this.currentProgressionIndex <= 0) return;
     this.currentProgressionIndex--;
-    this.currentProgression = this.progressions[this.currentProgressionIndex];
+    this.currentProgression = { ...this.progressions[this.currentProgressionIndex] }; // Nova referência
+  }
+
+  regenerateVoiceLeading(): void {
+    if (this.currentProgression) {
+      console.log('Previous voices:', JSON.stringify(this.currentProgression.voices)); // Log antes
+      const inputProgression = {
+        roman: this.currentProgression.roman,
+        transposed: this.currentProgression.transposed,
+        notes: this.currentProgression.notes,
+        functions: this.currentProgression.functions || []
+      };
+      const voices = this.voiceLeadingService.applyVoiceLeading(inputProgression);
+      console.log('Regenerated voices:', JSON.stringify(voices)); // Log depois
+      this.progressions[this.currentProgressionIndex] = {
+        ...this.currentProgression,
+        voices
+      };
+      this.currentProgression = { ...this.progressions[this.currentProgressionIndex] }; // Nova referência
+    }
   }
 
   private updateAlgorithmIndex(): void {
     const algorithms = this.chordProgressionsService.getAvailableAlgorithms();
-    this.algorithmIndex = algorithms.indexOf(this.selectedAlgorithm);
+    this.algorithmIndex = algorithms.findIndex(alg => alg === this.selectedAlgorithm);
+    if (this.algorithmIndex === -1 && algorithms.length > 0) {
+      this.selectedAlgorithm = algorithms[0];
+      this.algorithmIndex = 0;
+    }
   }
 }

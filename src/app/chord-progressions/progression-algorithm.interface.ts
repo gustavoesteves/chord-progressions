@@ -3,19 +3,11 @@ export interface ProgressionAlgorithm {
   generateProgressions(
     tonality: string,
     progressionLength: number
-  ): Generator<
-    { 
-      roman: string[], 
-      transposed: string[], 
-      notes: string[][], 
-      voices?: { soprano: string, contralto: string, tenor: string, baixo: string }[] 
-    }, 
-    void, 
-    undefined
-  > | { 
-      roman: string[], 
-      transposed: string[], 
-      notes: string[][], 
-      voices?: { soprano: string, contralto: string, tenor: string, baixo: string }[] 
-    }[];
+  ):
+    | { roman: string[]; transposed: string[]; notes: string[][]; functions: string[][] }[]
+    | Generator<
+        { roman: string[]; transposed: string[]; notes: string[][]; functions: string[][] },
+        void,
+        undefined
+      >;
 }

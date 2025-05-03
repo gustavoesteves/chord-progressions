@@ -2,6 +2,7 @@ import { Component, EventEmitter, Output, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ChordProgressionsService } from '../chord-progressions.service';
+import { ProgressionAlgorithm } from '../progression-algorithm.interface';
 
 @Component({
   selector: 'app-algorithm-selector',
@@ -11,9 +12,9 @@ import { ChordProgressionsService } from '../chord-progressions.service';
   imports: [CommonModule, FormsModule]
 })
 export class AlgorithmSelectorComponent implements OnInit {
-  availableAlgorithms: string[] = [];
-  selectedAlgorithm: string = '';
-  @Output() algorithmChanged = new EventEmitter<string>();
+  availableAlgorithms: ProgressionAlgorithm[] = [];
+  selectedAlgorithm: ProgressionAlgorithm | null = null;
+  @Output() algorithmChanged = new EventEmitter<ProgressionAlgorithm>();
 
   constructor(private chordProgressionsService: ChordProgressionsService) {}
 
@@ -25,9 +26,9 @@ export class AlgorithmSelectorComponent implements OnInit {
     }
   }
 
-  onAlgorithmChange(event: Event): void {
-    const target = event.target as HTMLSelectElement;
-    this.selectedAlgorithm = target.value;
-    this.algorithmChanged.emit(this.selectedAlgorithm);
+  onAlgorithmChange(): void {
+    if (this.selectedAlgorithm) {
+      this.algorithmChanged.emit(this.selectedAlgorithm);
+    }
   }
 }
