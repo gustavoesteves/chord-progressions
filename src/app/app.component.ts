@@ -13,7 +13,7 @@ import { MusicXmlExportComponent } from './score-display/music-xml-export.compon
 import { TonalitySelectorComponent } from './tonality/tonality-selector/tonality-selector.component';
 import { ChordProgressionsService } from './chord-progressions/chord-progressions.service';
 import { VoiceLeadingService } from './chord-progressions/voice-leading/voice-leading.service';
-import { ProgressionAlgorithm } from './chord-progressions/progression-algorithm.interface';
+import { ProgressionAlgorithm } from './types'
 
 @Component({
   selector: 'app-root',

@@ -2,7 +2,7 @@ import { Component, EventEmitter, Output, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ChordProgressionsService } from '../chord-progressions.service';
-import { ProgressionAlgorithm } from '../progression-algorithm.interface';
+import { ProgressionAlgorithm } from '../../types';
 
 @Component({
   selector: 'app-algorithm-selector',

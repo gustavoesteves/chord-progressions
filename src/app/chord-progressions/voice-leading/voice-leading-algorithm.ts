@@ -1,13 +1,5 @@
 import { Injectable } from '@angular/core';
-import { VoiceLeadingAlgorithmInterface } from './voice-leading-algorithm.interface';
-
-// Interface para representar as vozes de um acorde
-interface Voices {
-  soprano: string;
-  contralto: string;
-  tenor: string;
-  baixo: string;
-}
+import { VoiceLeadingAlgorithmInterface, Voices } from '../../types';
 
 @Injectable({
   providedIn: 'root'

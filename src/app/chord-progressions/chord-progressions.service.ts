@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { ProgressionAlgorithm } from './progression-algorithm.interface';
+import { ProgressionAlgorithm } from '../types';
 import { TonalTriadProgressionAlgorithm } from './progression-algorithms/tonal-triad-progression-algorithm';
 import { InvertedTriadProgressionAlgorithm } from './progression-algorithms/inverted-triad-progression-algorithm';
 import { VoiceLeadingService } from './voice-leading/voice-leading.service';

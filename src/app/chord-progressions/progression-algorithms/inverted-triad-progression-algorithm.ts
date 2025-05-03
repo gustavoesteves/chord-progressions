@@ -1,4 +1,4 @@
-import { ProgressionAlgorithm } from '../progression-algorithm.interface';
+import { ProgressionAlgorithm } from '../../types';
 import { TonalityService } from '../../tonality/tonality.service';
 import { Injectable } from '@angular/core';
 import { Chord } from '@tonaljs/tonal';
