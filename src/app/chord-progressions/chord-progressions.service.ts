@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { ProgressionAlgorithm } from '../types';
 import { TonalTriadProgressionAlgorithm } from './progression-algorithms/tonal-triad-progression-algorithm';
 import { InvertedTriadProgressionAlgorithm } from './progression-algorithms/inverted-triad-progression-algorithm';
-import { VoiceLeadingService } from './voice-leading/voice-leading.service';
+import { VoiceLeadingAlgorithm } from './voice-leading/voice-leading-algorithm';
 
 @Injectable({
   providedIn: 'root'
@@ -13,9 +13,18 @@ export class ChordProgressionsService {
   constructor(
     tonalTriadAlgorithm: TonalTriadProgressionAlgorithm,
     invertedTriadAlgorithm: InvertedTriadProgressionAlgorithm,
-    private voiceLeadingService: VoiceLeadingService
+    private voiceLeadingAlgorithm: VoiceLeadingAlgorithm
   ) {
     this.algorithms = [tonalTriadAlgorithm, invertedTriadAlgorithm];
+  }
+
+  applyVoiceLeading(progression: {
+    roman: string[];
+    transposed: string[];
+    notes: string[][];
+    functions: string[][];
+  }): { soprano: string; contralto: string; tenor: string; baixo: string }[] {
+    return this.voiceLeadingAlgorithm.applyVoiceLeading(progression);
   }
 
   getAvailableAlgorithms(): ProgressionAlgorithm[] {
@@ -57,7 +66,7 @@ export class ChordProgressionsService {
     undefined
   > {
     for (const progression of progressions) {
-      const voices = this.voiceLeadingService.applyVoiceLeading(progression);
+      const voices = this.applyVoiceLeading(progression);
       yield {
         roman: progression.roman,
         transposed: progression.transposed,
@@ -82,7 +91,7 @@ export class ChordProgressionsService {
     let next = progressions.next();
     while (!next.done) {
       const progression = next.value;
-      const voices = this.voiceLeadingService.applyVoiceLeading(progression);
+      const voices = this.applyVoiceLeading(progression);
       yield {
         roman: progression.roman,
         transposed: progression.transposed,

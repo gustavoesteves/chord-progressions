@@ -12,7 +12,6 @@ import { ScoreDisplayComponent } from './score-display/score-display.component';
 import { MusicXmlExportComponent } from './score-display/music-xml-export.component';
 import { TonalitySelectorComponent } from './tonality/tonality-selector/tonality-selector.component';
 import { ChordProgressionsService } from './chord-progressions/chord-progressions.service';
-import { VoiceLeadingService } from './chord-progressions/voice-leading/voice-leading.service';
 import { ProgressionAlgorithm } from './types'
 
 @Component({
@@ -72,7 +71,7 @@ export class AppComponent {
 
   constructor(
     private chordProgressionsService: ChordProgressionsService,
-    private voiceLeadingService: VoiceLeadingService
+    private voiceLeadingService: ChordProgressionsService
   ) {
     this.updateAlgorithmIndex();
   }
