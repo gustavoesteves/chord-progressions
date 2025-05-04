@@ -1,61 +1,63 @@
-# ChordProgressionsApp
+# Chord Progressions App
+Uma aplicação Angular para gerar progressões de acordes com condução de vozes e renderização de partituras em MusicXML.
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.2.7.
+## Pré-requisitos
 
-## Development server
+- Node.js (versão 18.x ou superior)
+- Angular CLI (npm install -g @angular/cli)
+- Git
 
-To start a local development server, run:
+### Instalação
 
+1. Clone o repositório:
+```bash
+git clone https://github.com/seu-usuario/chord-progressions-app.git
+cd chord-progressions-app
+```
+
+2. Instale as dependências:
+```bash
+npm install
+```
+3. Inicie o servidor de desenvolvimento:
 ```bash
 ng serve
 ```
+4. Acesse a aplicação em [http://localhost:4200].
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+## Funcionalidades
 
-## Code scaffolding
+- Geração de progressões de acordes com algoritmos configuráveis.
+- Condução de vozes com prioridade à tessitura.
+- Renderização de partituras usando OpenSheetMusicDisplay.
+- Exportação de partituras em formato MusicXML.
+- Suporte a diferentes formações (Piano, Violão, Quarteto de Cordas, Quarteto Vocal) com configurações de tessituras, claves e pautas.
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+## Estrutura do Projeto
 
+- src/app/app.component.ts: Componente principal que coordena a interface e a lógica da aplicação.
+- src/app/chord-progressions/voice-leading/voice-leading-algorithm.ts: Implementa a lógica de condução de vozes, incluindo otimização de trajetos e prioridade de tessituras.
+- src/app/score-display/: Contém componentes para renderização (score-display.component.ts) e exportação (music-xml-export.component.ts) de partituras.
+- src/app/types.ts: Define interfaces como Formation, Voices, e Tessituras.
+- src/app/chord-progressions/chord-progressions.service.ts: Serviço para geração de progressões de acordes.
+- .gitignore: Exclui arquivos desnecessários, como node_modules e .angular/cache.
+
+## Contribuição
+
+1. Faça um fork do repositório.
+2. Crie uma branch para sua feature: 
 ```bash
-ng generate component component-name
+git checkout -b minha-feature
 ```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
+3. Commit suas mudanças: 
+```bash 
+git commit -m "Adiciona minha feature"
+```
+4. Envie para o GitHub: 
 ```bash
-ng generate --help
+git push origin minha-feature.
 ```
+5. Abra um Pull Request.
 
-## Building
-
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
-
-
+Licença
+[MIT License]
