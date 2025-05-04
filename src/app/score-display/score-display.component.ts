@@ -2,6 +2,7 @@ import { Component, Input, AfterViewInit, ElementRef, ViewChild, OnChanges, Simp
 import { CommonModule } from '@angular/common';
 import { OpenSheetMusicDisplay, IOSMDOptions } from 'opensheetmusicdisplay';
 import { MusicXmlService } from './music-xml.service';
+import { Formation } from '../types';
 
 @Component({
   selector: 'app-score-display',
@@ -21,7 +22,7 @@ import { MusicXmlService } from './music-xml.service';
 export class ScoreDisplayComponent implements AfterViewInit, OnChanges {
   @ViewChild('osmdContainer', { static: false }) osmdContainer!: ElementRef;
   @Input() progression: { roman: string[], transposed: string[], notes: string[][], voices?: { soprano: string, contralto: string, tenor: string, baixo: string }[] } | null = null;
-  @Input() formation: string = 'piano';
+  @Input() formation: Formation | null = null;
   private osmd: OpenSheetMusicDisplay | null = null;
 
   constructor(private musicXmlService: MusicXmlService) {}
@@ -48,13 +49,12 @@ export class ScoreDisplayComponent implements AfterViewInit, OnChanges {
     };
 
     try {
-      // Inicializar o OSMD apenas se ainda não foi inicializado
       if (!this.osmd) {
         this.osmd = new OpenSheetMusicDisplay(this.osmdContainer.nativeElement, options);
         console.log('OSMD initialized successfully:', this.osmd);
       }
 
-      if (this.progression && this.osmd) {
+      if (this.progression && this.formation && this.osmd) {
         console.log('Generating MusicXML...');
         const musicXml = await this.musicXmlService.generateMusicXml(this.progression, this.formation);
         console.log('MusicXML generated:', musicXml);
@@ -68,7 +68,7 @@ export class ScoreDisplayComponent implements AfterViewInit, OnChanges {
           console.error('MusicXML não gerado');
         }
       } else {
-        console.error('Progression ou OSMD não disponível:', { progression: this.progression, osmd: this.osmd });
+        console.error('Progression, formation ou OSMD não disponível:', { progression: this.progression, formation: this.formation, osmd: this.osmd });
       }
     } catch (error) {
       console.error('Erro ao renderizar a partitura:', error);

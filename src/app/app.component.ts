@@ -12,7 +12,8 @@ import { ScoreDisplayComponent } from './score-display/score-display.component';
 import { MusicXmlExportComponent } from './score-display/music-xml-export.component';
 import { TonalitySelectorComponent } from './tonality/tonality-selector/tonality-selector.component';
 import { ChordProgressionsService } from './chord-progressions/chord-progressions.service';
-import { ProgressionAlgorithm } from './types'
+import { VoiceLeadingAlgorithm } from './chord-progressions/voice-leading/voice-leading-algorithm';
+import { ProgressionAlgorithm, Formation } from './types';
 
 @Component({
   selector: 'app-root',
@@ -37,7 +38,7 @@ import { ProgressionAlgorithm } from './types'
 export class AppComponent {
   selectedTonality: string = 'C';
   selectedAlgorithm: ProgressionAlgorithm | null = null;
-  selectedFormation: string = 'piano';
+  selectedFormation: string = 'Quarteto Vocal';
   progressionLength: number = 4;
   generateClicked: boolean = false;
   progressions: {
@@ -66,14 +67,56 @@ export class AppComponent {
     void,
     undefined
   > | null = null;
-  formations: string[] = ['piano', 'violão', 'quarteto de cordas', 'quarteto vocal'];
+  formations: Formation[] = [
+    {
+      name: 'Piano',
+      tessituras: {
+        soprano: { min: 67, max: 84, clef: 'G', staff: 1 },
+        contralto: { min: 60, max: 79, clef: 'G', staff: 1 },
+        tenor: { min: 55, max: 72, clef: 'F', staff: 2 },
+        baixo: { min: 36, max: 67, clef: 'F', staff: 2 }
+      }
+    },
+    {
+      name: 'Violão',
+      tessituras: {
+        soprano: { min: 55, max: 76, clef: 'G', staff: 1 },
+        contralto: { min: 52, max: 72, clef: 'G', staff: 1 },
+        tenor: { min: 48, max: 67, clef: 'G', staff: 1 },
+        baixo: { min: 40, max: 64, clef: 'G', staff: 1 }
+      }
+    },
+    {
+      name: 'Quarteto de Cordas',
+      tessituras: {
+        soprano: { min: 55, max: 88, clef: 'G', staff: 1 },
+        contralto: { min: 55, max: 83, clef: 'G', staff: 2 },
+        tenor: { min: 48, max: 76, clef: 'C', staff: 3 },
+        baixo: { min: 36, max: 67, clef: 'F', staff: 4 }
+      }
+    },
+    {
+      name: 'Quarteto Vocal',
+      tessituras: {
+        soprano: { min: 60, max: 79, clef: 'G', staff: 1 },
+        contralto: { min: 55, max: 74, clef: 'G', staff: 2 },
+        tenor: { min: 48, max: 67, clef: 'G', staff: 3 },
+        baixo: { min: 40, max: 60, clef: 'F', staff: 4 }
+      }
+    }
+  ];
   algorithmIndex: number = 0;
 
   constructor(
     private chordProgressionsService: ChordProgressionsService,
-    private voiceLeadingService: ChordProgressionsService
+    private voiceLeadingService: VoiceLeadingAlgorithm
   ) {
     this.updateAlgorithmIndex();
+  }
+
+  // Propriedade computada para obter a formação atual
+  get currentFormation(): Formation | null {
+    return this.formations.find(f => f.name === this.selectedFormation) || null;
   }
 
   onKeyChange(tonality: string): void {
@@ -97,7 +140,18 @@ export class AppComponent {
 
   onFormationChange(): void {
     if (this.currentProgression) {
-      this.currentProgression = { ...this.currentProgression };
+      const inputProgression = {
+        roman: this.currentProgression.roman,
+        transposed: this.currentProgression.transposed,
+        notes: this.currentProgression.notes,
+        functions: this.currentProgression.functions || []
+      };
+      const voices = this.voiceLeadingService.applyVoiceLeading(inputProgression, this.currentFormation?.tessituras);
+      this.progressions[this.currentProgressionIndex] = {
+        ...this.currentProgression,
+        voices
+      };
+      this.currentProgression = { ...this.progressions[this.currentProgressionIndex] };
     }
   }
 
@@ -126,40 +180,40 @@ export class AppComponent {
         notes: next.value.notes,
         functions: next.value.functions || []
       };
-      const voices = this.voiceLeadingService.applyVoiceLeading(inputProgression);
-      console.log('New progression voices:', JSON.stringify(voices)); // Log para depurar
+      const voices = this.voiceLeadingService.applyVoiceLeading(inputProgression, this.currentFormation?.tessituras);
+      console.log('New progression voices:', JSON.stringify(voices));
       const progression = {
         ...inputProgression,
         voices
       };
       this.progressions.push(progression);
       this.currentProgressionIndex = this.progressions.length - 1;
-      this.currentProgression = { ...this.progressions[this.currentProgressionIndex] }; // Nova referência
+      this.currentProgression = { ...this.progressions[this.currentProgressionIndex] };
     }
   }
 
   loadPreviousProgression(): void {
     if (this.currentProgressionIndex <= 0) return;
     this.currentProgressionIndex--;
-    this.currentProgression = { ...this.progressions[this.currentProgressionIndex] }; // Nova referência
+    this.currentProgression = { ...this.progressions[this.currentProgressionIndex] };
   }
 
   regenerateVoiceLeading(): void {
     if (this.currentProgression) {
-      console.log('Previous voices:', JSON.stringify(this.currentProgression.voices)); // Log antes
+      console.log('Previous voices:', JSON.stringify(this.currentProgression.voices));
       const inputProgression = {
         roman: this.currentProgression.roman,
         transposed: this.currentProgression.transposed,
         notes: this.currentProgression.notes,
         functions: this.currentProgression.functions || []
       };
-      const voices = this.voiceLeadingService.applyVoiceLeading(inputProgression);
-      console.log('Regenerated voices:', JSON.stringify(voices)); // Log depois
+      const voices = this.voiceLeadingService.applyVoiceLeading(inputProgression, this.currentFormation?.tessituras);
+      console.log('Regenerated voices:', JSON.stringify(voices));
       this.progressions[this.currentProgressionIndex] = {
         ...this.currentProgression,
         voices
       };
-      this.currentProgression = { ...this.progressions[this.currentProgressionIndex] }; // Nova referência
+      this.currentProgression = { ...this.progressions[this.currentProgressionIndex] };
     }
   }
 

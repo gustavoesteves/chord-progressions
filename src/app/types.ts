@@ -8,6 +8,8 @@ export interface Voices {
 export interface Tessitura {
     min: number;
     max: number;
+    clef: string; // Ex.: "G" (clave de sol), "F" (clave de fá), "C" (clave de dó)
+    staff: number; // Número da pauta (ex.: 1, 2, 3, 4)
 }
 
 export interface Formation {

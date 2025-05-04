@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { create } from 'xmlbuilder2';
+import { Note } from '@tonaljs/tonal';
 
 @Injectable({
   providedIn: 'root'
@@ -12,7 +13,15 @@ export class MusicXmlService {
       notes: string[][];
       voices?: { soprano: string; contralto: string; tenor: string; baixo: string }[];
     },
-    formation: string
+    formation: {
+      name: string;
+      tessituras: {
+        soprano: { min: number; max: number; clef: string; staff: number };
+        contralto: { min: number; max: number; clef: string; staff: number };
+        tenor: { min: number; max: number; clef: string; staff: number };
+        baixo: { min: number; max: number; clef: string; staff: number };
+      };
+    }
   ): Promise<string> {
     console.log('Gerando MusicXML para progressão:', progression, 'formação:', formation);
 
@@ -21,9 +30,16 @@ export class MusicXmlService {
       return '';
     }
 
-    const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-
     try {
+      // Determina o número de pautas (máximo staff number)
+      const staffNumbers = [
+        formation.tessituras.soprano.staff,
+        formation.tessituras.contralto.staff,
+        formation.tessituras.tenor.staff,
+        formation.tessituras.baixo.staff
+      ];
+      const numberOfStaves = Math.max(...staffNumbers);
+
       const xml = create({ version: '1.0', encoding: 'UTF-8', standalone: 'yes' })
         .ele('score-partwise', { version: '4.0' })
         .ele('work')
@@ -47,7 +63,7 @@ export class MusicXmlService {
         .ele('part-list')
         .ele('score-part', { id: 'P1' })
         .ele('part-name')
-        .txt(formation === 'piano' ? 'Piano' : 'Ensemble')
+        .txt(formation.name)
         .up()
         .up()
         .up()
@@ -61,8 +77,8 @@ export class MusicXmlService {
         const measure = xml.ele('measure', { number: (index + 1).toString() });
 
         if (index === 0) {
-          measure
-            .ele('attributes')
+          const attributes = measure.ele('attributes');
+          attributes
             .ele('divisions')
             .txt('1')
             .up()
@@ -80,25 +96,30 @@ export class MusicXmlService {
             .up()
             .up()
             .ele('staves')
-            .txt('2')
-            .up()
-            .ele('clef', { number: '1' })
-            .ele('sign')
-            .txt('G')
-            .up()
-            .ele('line')
-            .txt('2')
-            .up()
-            .up()
-            .ele('clef', { number: '2' })
-            .ele('sign')
-            .txt('F')
-            .up()
-            .ele('line')
-            .txt('4')
-            .up()
-            .up()
+            .txt(numberOfStaves.toString())
             .up();
+
+          // Define claves para cada pauta
+          const uniqueStaffs = Array.from(new Set(staffNumbers));
+          uniqueStaffs.forEach(staff => {
+            // Encontra a primeira voz com esse staff para obter a clave
+            const voiceKey = Object.keys(formation.tessituras).find(
+              key => formation.tessituras[key as keyof typeof formation.tessituras].staff === staff
+            );
+            if (voiceKey) {
+              const clef = formation.tessituras[voiceKey as keyof typeof formation.tessituras].clef;
+              attributes
+                .ele('clef', { number: staff.toString() })
+                .ele('sign')
+                .txt(clef)
+                .up()
+                .ele('line')
+                .txt(clef === 'G' ? '2' : clef === 'F' ? '4' : '3') // Ajuste para clave de dó, se necessário
+                .up()
+                .up();
+            }
+          });
+          attributes.up();
         }
 
         measure
@@ -117,23 +138,40 @@ export class MusicXmlService {
           .up()
           .up();
 
-        const validateNote = (note: string): { step: string; octave: string; alter?: number } | null => {
-          const match = note.match(/([A-G]#?|\w+)\/(\d+)/);
-          if (!match || !noteNames.includes(match[1])) {
+        const validateNote = (note: string): { step: string; octave: number; alter?: number } | null => {
+          const noteData = Note.get(note);
+          if (!noteData || !noteData.pc || noteData.empty) {
             console.warn(`Nota inválida: ${note}`);
             return null;
           }
-          const [_, step, octave] = match;
-          const alter = step.length > 1 ? (step[1] === '#' ? 1 : -1) : 0;
-          return { step: step[0], octave, alter };
+          const stepMap = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+          const step = stepMap[noteData.step];
+          const octave = noteData.oct || 4;
+          const alter = noteData.alt || 0;
+          return { step, octave, alter };
         };
 
-        const voicesOrder = [soprano, contralto, tenor, baixo];
+        const voicesOrder = [
+          { note: soprano, staff: formation.tessituras.soprano.staff, voiceId: 1 },
+          { note: contralto, staff: formation.tessituras.contralto.staff, voiceId: 2 },
+          { note: tenor, staff: formation.tessituras.tenor.staff, voiceId: 3 },
+          { note: baixo, staff: formation.tessituras.baixo.staff, voiceId: 4 }
+        ];
 
-        if (formation === 'piano') {
-          const trebleNotes = [voicesOrder[0], voicesOrder[1]];
-          trebleNotes.forEach((note, noteIndex) => {
-            const validatedNote = validateNote(note);
+        // Agrupa vozes por staff
+        const voicesByStaff: { [staff: number]: { note: string; voiceId: number }[] } = {};
+        voicesOrder.forEach(v => {
+          if (!voicesByStaff[v.staff]) {
+            voicesByStaff[v.staff] = [];
+          }
+          voicesByStaff[v.staff].push({ note: v.note, voiceId: v.voiceId });
+        });
+
+        // Gera notas para cada staff
+        Object.keys(voicesByStaff).forEach(staff => {
+          const staffVoices = voicesByStaff[parseInt(staff)];
+          staffVoices.forEach((v, noteIndex) => {
+            const validatedNote = validateNote(v.note);
             if (!validatedNote) return;
             const noteEle = measure.ele('note');
             if (noteIndex > 0) {
@@ -141,54 +179,21 @@ export class MusicXmlService {
             }
             const pitchEle = noteEle.ele('pitch');
             pitchEle.ele('step').txt(validatedNote.step).up();
-            pitchEle.ele('octave').txt(validatedNote.octave).up();
+            pitchEle.ele('octave').txt(validatedNote.octave.toString()).up();
             if (validatedNote.alter !== undefined && validatedNote.alter !== 0) {
               pitchEle.ele('alter').txt(validatedNote.alter.toString()).up();
             }
             noteEle.ele('duration').txt('4').up();
-            noteEle.ele('voice').txt('1').up();
+            noteEle.ele('voice').txt(v.voiceId.toString()).up();
             noteEle.ele('type').txt('whole').up();
-            noteEle.ele('staff').txt('1').up();
+            noteEle.ele('staff').txt(staff).up();
           });
 
-          measure.ele('backup').ele('duration').txt('4').up().up();
-
-          const bassNotes = [voicesOrder[2], voicesOrder[3]];
-          bassNotes.forEach((note, noteIndex) => {
-            const validatedNote = validateNote(note);
-            if (!validatedNote) return;
-            const noteEle = measure.ele('note');
-            if (noteIndex > 0) {
-              noteEle.ele('chord').up();
-            }
-            const pitchEle = noteEle.ele('pitch');
-            pitchEle.ele('step').txt(validatedNote.step).up();
-            pitchEle.ele('octave').txt(validatedNote.octave).up();
-            if (validatedNote.alter !== undefined && validatedNote.alter !== 0) {
-              pitchEle.ele('alter').txt(validatedNote.alter.toString()).up();
-            }
-            noteEle.ele('duration').txt('4').up();
-            noteEle.ele('voice').txt('1').up();
-            noteEle.ele('type').txt('whole').up();
-            noteEle.ele('staff').txt('2').up();
-          });
-        } else {
-          voicesOrder.forEach((note, voiceIndex) => {
-            const validatedNote = validateNote(note);
-            if (!validatedNote) return;
-            const noteEle = measure.ele('note');
-            const pitchEle = noteEle.ele('pitch');
-            pitchEle.ele('step').txt(validatedNote.step).up();
-            pitchEle.ele('octave').txt(validatedNote.octave).up();
-            if (validatedNote.alter !== undefined && validatedNote.alter !== 0) {
-              pitchEle.ele('alter').txt(validatedNote.alter.toString()).up();
-            }
-            noteEle.ele('duration').txt('4').up();
-            noteEle.ele('voice').txt((voiceIndex + 1).toString()).up();
-            noteEle.ele('type').txt('whole').up();
-            noteEle.ele('staff').txt((voiceIndex + 1).toString()).up();
-          });
-        }
+          // Adiciona backup entre staffs, exceto para violão (uma única pauta)
+          if (formation.name !== 'Violão' && parseInt(staff) < numberOfStaves) {
+            measure.ele('backup').ele('duration').txt('4').up().up();
+          }
+        });
       });
 
       const musicXml = xml.end({ prettyPrint: true });

@@ -15,8 +15,8 @@
       <label for="formationSelect" class="custom-label">Formation:</label>
       <select id="formationSelect" [(ngModel)]="selectedFormation" (ngModelChange)="onFormationChange()"
         class="custom-select">
-        <option *ngFor="let formation of formations" [value]="formation">
-          {{ formation }}
+        <option *ngFor="let formation of formations" [value]="formation.name">
+          {{ formation.name }}
         </option>
       </select>
       <button mat-raised-button class="generate-button" (click)="onGenerate()">
@@ -39,13 +39,15 @@
         <button mat-raised-button class="nav-button" (click)="regenerateVoiceLeading()">
           Regenerate Voice-Leading
         </button>
-        <app-music-xml-export [progression]="currentProgression" [formation]="selectedFormation"
-          [algorithmIndex]="algorithmIndex"></app-music-xml-export>
+        <app-music-xml-export [progression]="currentProgression" [formation]="currentFormation"
+          [algorithmIndex]="algorithmIndex">
+        </app-music-xml-export>
       </div>
     </div>
 
     <div class="score-section">
-      <app-score-display [progression]="currentProgression" [formation]="selectedFormation"></app-score-display>
+      <app-score-display [progression]="currentProgression" [formation]="currentFormation">
+      </app-score-display>
     </div>
   </div>
 </div>
