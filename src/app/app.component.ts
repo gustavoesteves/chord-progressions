@@ -71,37 +71,37 @@ export class AppComponent {
     {
       name: 'Piano',
       tessituras: {
-        soprano: { min: 67, max: 84, clef: 'G', staff: 1 },
-        contralto: { min: 60, max: 79, clef: 'G', staff: 1 },
-        tenor: { min: 55, max: 72, clef: 'F', staff: 2 },
-        baixo: { min: 36, max: 67, clef: 'F', staff: 2 }
+        soprano: { min: 67, max: 84, clef: 'G', staff: 1 }, // G4 a C6
+        contralto: { min: 60, max: 79, clef: 'G', staff: 1 }, // C4 a G5
+        tenor: { min: 55, max: 72, clef: 'F', staff: 2 }, // G3 a C5
+        baixo: { min: 36, max: 67, clef: 'F', staff: 2 } // C2 a G4
       }
     },
     {
       name: 'Violão',
       tessituras: {
-        soprano: { min: 55, max: 76, clef: 'G', staff: 1 },
-        contralto: { min: 52, max: 72, clef: 'G', staff: 1 },
-        tenor: { min: 48, max: 67, clef: 'G', staff: 1 },
-        baixo: { min: 40, max: 64, clef: 'G', staff: 1 }
+        soprano: { min: 64, max: 88, clef: 'G', staff: 1 }, // E4 a E6 (escrito, soa E3 a E5)
+        contralto: { min: 60, max: 84, clef: 'G', staff: 1 }, // C4 a C6 (escrito, soa C3 a C5)
+        tenor: { min: 55, max: 79, clef: 'G', staff: 1 }, // G3 a G5 (escrito, soa G2 a G4)
+        baixo: { min: 52, max: 76, clef: 'G', staff: 1 } // E3 a E5 (escrito, soa E2 a E4)
       }
     },
     {
       name: 'Quarteto de Cordas',
       tessituras: {
-        soprano: { min: 55, max: 88, clef: 'G', staff: 1 },
-        contralto: { min: 55, max: 83, clef: 'G', staff: 2 },
-        tenor: { min: 48, max: 76, clef: 'C', staff: 3 },
-        baixo: { min: 36, max: 67, clef: 'F', staff: 4 }
+        soprano: { min: 55, max: 88, clef: 'G', staff: 1 }, // G3 a E6
+        contralto: { min: 55, max: 83, clef: 'G', staff: 2 }, // G3 a B5
+        tenor: { min: 48, max: 76, clef: 'C', staff: 3 }, // C3 a E5
+        baixo: { min: 36, max: 67, clef: 'F', staff: 4 } // C2 a G4
       }
     },
     {
       name: 'Quarteto Vocal',
       tessituras: {
-        soprano: { min: 60, max: 79, clef: 'G', staff: 1 },
-        contralto: { min: 55, max: 74, clef: 'G', staff: 2 },
-        tenor: { min: 48, max: 67, clef: 'G', staff: 3 },
-        baixo: { min: 40, max: 60, clef: 'F', staff: 4 }
+        soprano: { min: 60, max: 79, clef: 'G', staff: 1 }, // C4 a G5
+        contralto: { min: 55, max: 74, clef: 'G', staff: 2 }, // G3 a D5
+        tenor: { min: 48, max: 67, clef: 'G', staff: 3 }, // C3 a G4
+        baixo: { min: 40, max: 60, clef: 'F', staff: 4 } // E2 a C4
       }
     }
   ];
@@ -114,7 +114,6 @@ export class AppComponent {
     this.updateAlgorithmIndex();
   }
 
-  // Propriedade computada para obter a formação atual
   get currentFormation(): Formation | null {
     return this.formations.find(f => f.name === this.selectedFormation) || null;
   }
@@ -207,7 +206,7 @@ export class AppComponent {
         notes: this.currentProgression.notes,
         functions: this.currentProgression.functions || []
       };
-      const voices = this.voiceLeadingService.applyVoiceLeading(inputProgression, this.currentFormation?.tessituras);
+      const voices = this.voiceLeadingService.applyVoiceLeading(inputProgression, this.currentFormation?.tessituras, true);
       console.log('Regenerated voices:', JSON.stringify(voices));
       this.progressions[this.currentProgressionIndex] = {
         ...this.currentProgression,

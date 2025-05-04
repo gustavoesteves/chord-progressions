@@ -11,7 +11,7 @@ Uma aplicação Angular para gerar progressões de acordes com condução de voz
 
 1. Clone o repositório:
 ```bash
-git clone https://github.com/seu-usuario/chord-progressions-app.git
+git clone https://github.com/gustavoesteves/chord-progressions.git
 cd chord-progressions-app
 ```
 

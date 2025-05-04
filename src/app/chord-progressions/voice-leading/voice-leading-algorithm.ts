@@ -52,7 +52,7 @@ export class VoiceLeadingAlgorithm implements VoiceLeadingAlgorithmInterface {
     return possibleNotes;
   }
 
-  // Ajusta a nota para caber na tessitura, priorizando o range
+  // Ajusta a nota para caber na tessitura, priorizando o caminho mais curto
   private adjustNoteToTessitura(note: string, tessitura: { min: number; max: number }, prevMidi?: number): string {
     const pitchClass = Note.pitchClass(note);
     const possibleNotes = this.getPossibleNotes(pitchClass, tessitura);
@@ -63,18 +63,115 @@ export class VoiceLeadingAlgorithm implements VoiceLeadingAlgorithmInterface {
       return this.midiToNote(closestMidi, pitchClass);
     }
 
-    // Prioriza a tessitura, escolhendo a nota mais próxima do prevMidi dentro da tessitura
     if (prevMidi !== undefined) {
+      // Escolhe a nota com o menor salto melódico
       return possibleNotes.reduce((prev, curr) => {
         return Math.abs(curr.midi - prevMidi) < Math.abs(prev.midi - prevMidi) ? curr : prev;
       }, possibleNotes[0]).note;
     }
 
-    // Sem prevMidi, usa a nota mais próxima do MIDI original
+    // Se não houver nota anterior, escolhe a nota mais próxima do MIDI médio da tessitura
     const midi = this.noteToMidi(note);
     return possibleNotes.reduce((prev, curr) => {
       return Math.abs(curr.midi - midi) < Math.abs(prev.midi - midi) ? curr : prev;
     }, possibleNotes[0]).note;
+  }
+
+  // Gera combinações válidas de atribuições de vozes com classes de pitch
+  private generateValidCombinations(
+    progressionNotes: string[][],
+    maxCombinations: number = 10
+  ): Voices[][] {
+    const validCombinations: Voices[][] = [];
+    const combinationSet = new Set<string>(); // Para evitar duplicatas
+    const voiceKeys = ['baixo', 'tenor', 'contralto', 'soprano'] as const;
+
+    const generateForChord = (
+      chordIndex: number,
+      prevVoices: Voices | null,
+      currentCombination: Voices[]
+    ) => {
+      if (chordIndex >= progressionNotes.length) {
+        // Verifica unicidade da combinação
+        const combinationStr = JSON.stringify(currentCombination);
+        if (!combinationSet.has(combinationStr)) {
+          validCombinations.push([...currentCombination]);
+          combinationSet.add(combinationStr);
+          console.log(`Combinação ${validCombinations.length} gerada: ${combinationStr}`);
+        }
+        return validCombinations.length >= maxCombinations;
+      }
+
+      const chordNotes = progressionNotes[chordIndex].map(note => Note.pitchClass(note));
+      console.log(`Gerando combinações para acorde ${chordIndex + 1}: ${chordNotes}`);
+
+      // Identifica notas comuns com o acorde anterior
+      const commonNotes = prevVoices
+        ? chordNotes.filter(note => progressionNotes[chordIndex - 1].map(n => Note.pitchClass(n)).includes(note))
+        : [];
+
+      // Gera todas as permutações válidas para as vozes não-baixo
+      const nonBassNotes = chordNotes.slice(1); // Notas disponíveis para tenor, contralto, soprano
+      const generatePermutations = (notes: string[], current: string[], result: string[][]) => {
+        if (current.length === voiceKeys.length - 1) {
+          // Verifica se a permutação contém todas as notas necessárias
+          const requiredNotes = nonBassNotes;
+          if (requiredNotes.every(note => current.includes(note))) {
+            result.push([...current]);
+          }
+          return;
+        }
+
+        for (const note of notes) {
+          const newNotes = notes.filter((n, i) => n !== note || i !== notes.indexOf(note));
+          current.push(note);
+          generatePermutations(newNotes, current, result);
+          current.pop();
+        }
+      };
+
+      const permutations: string[][] = [];
+      generatePermutations(nonBassNotes, [], permutations);
+
+      for (const perm of permutations) {
+        const voices: Voices = {
+          baixo: chordNotes[0], // Baixo fixo
+          tenor: perm[0],
+          contralto: perm[1],
+          soprano: perm[2]
+        };
+
+        // Prioriza notas comuns se disponíveis
+        let isValid = true;
+        if (prevVoices) {
+          for (const voice of voiceKeys.slice(1)) {
+            if (commonNotes.includes(prevVoices[voice]) && prevVoices[voice] !== voices[voice]) {
+              // Permite a combinação apenas se a nota comum não for prioritária ou se for mantida
+              if (!commonNotes.includes(voices[voice])) {
+                isValid = false;
+                break;
+              }
+            }
+          }
+        }
+
+        if (isValid) {
+          currentCombination.push(voices);
+          if (generateForChord(chordIndex + 1, voices, currentCombination)) {
+            return true;
+          }
+          currentCombination.pop();
+        }
+      }
+
+      return false;
+    };
+
+    generateForChord(0, null, []);
+    if (validCombinations.length === 0) {
+      console.warn(`Nenhuma combinação válida gerada para progressão: ${JSON.stringify(progressionNotes)}`);
+    }
+    return validCombinations;
   }
 
   // Aplica tessituras e previne cruzamento de vozes em todo o result
@@ -105,13 +202,14 @@ export class VoiceLeadingAlgorithm implements VoiceLeadingAlgorithmInterface {
       adjustedVoices['soprano'] = this.adjustNoteToTessitura(voices['soprano'], tessituras.soprano, prevMidi?.soprano);
 
       const voiceKeys = ['baixo', 'tenor', 'contralto', 'soprano'] as const;
-      let midiVoices = voiceKeys.map(v => this.noteToMidi(adjustedVoices[v]));
+      let midiValues = voiceKeys.map(v => this.noteToMidi(adjustedVoices[v]));
 
-      for (let i = 1; i < midiVoices.length; i++) {
-        if (midiVoices[i] <= midiVoices[i - 1]) {
+      // Previne cruzamento de vozes
+      for (let i = 1; i < midiValues.length; i++) {
+        if (midiValues[i] <= midiValues[i - 1]) {
           const voice = voiceKeys[i];
           const tessitura = tessituras[voice];
-          const prevMidi = midiVoices[i - 1];
+          const prevMidi = midiValues[i - 1];
           let newMidi = prevMidi + 1;
 
           if (newMidi < tessitura.min) {
@@ -123,10 +221,11 @@ export class VoiceLeadingAlgorithm implements VoiceLeadingAlgorithmInterface {
 
           const originalPitchClass = Note.pitchClass(voices[voice]);
           adjustedVoices[voice] = this.midiToNote(newMidi, originalPitchClass);
-          midiVoices[i] = this.noteToMidi(adjustedVoices[voice]);
+          midiValues[i] = this.noteToMidi(adjustedVoices[voice]);
         }
       }
 
+      // Verifica se as notas estão dentro das tessituras
       for (const voice of voiceKeys) {
         const midi = this.noteToMidi(adjustedVoices[voice]);
         const tessitura = tessituras[voice];
@@ -148,7 +247,7 @@ export class VoiceLeadingAlgorithm implements VoiceLeadingAlgorithmInterface {
     let prevVoices: Voices | null = null;
 
     result.forEach((voices, index) => {
-      const chordNotes = progressionNotes[index];
+      const chordNotes = progressionNotes[index].map(note => Note.pitchClass(note));
       const voiceKeys = ['baixo', 'tenor', 'contralto', 'soprano'] as const;
 
       const possibleNotesByVoice = voiceKeys.map((voice, i) => ({
@@ -204,7 +303,6 @@ export class VoiceLeadingAlgorithm implements VoiceLeadingAlgorithmInterface {
           }
         : undefined;
 
-      // Inicializa current com propriedades vazias para satisfazer a interface Voices
       generateCombinations(
         { soprano: '', contralto: '', tenor: '', baixo: '' },
         0,
@@ -212,9 +310,15 @@ export class VoiceLeadingAlgorithm implements VoiceLeadingAlgorithmInterface {
         prevMidi
       );
 
+      if (combinations.length === 0) {
+        optimizedResult.push(voices);
+        prevVoices = voices;
+        return;
+      }
+
       const bestCombination = combinations.reduce(
         (prev, curr) => (curr.cost < prev.cost ? curr : prev),
-        combinations[0] || { voices: voices, cost: Infinity }
+        combinations[0]
       );
 
       optimizedResult.push(bestCombination.voices);
@@ -226,14 +330,15 @@ export class VoiceLeadingAlgorithm implements VoiceLeadingAlgorithmInterface {
 
   applyVoiceLeading(
     progression: { roman: string[], transposed: string[], notes: string[][] },
-    tessituras?: Tessituras
+    tessituras?: Tessituras,
+    regenerate: boolean = false
   ): Voices[] {
     const result: Voices[] = [];
     const defaultTessituras: Tessituras = {
       soprano: { min: 60, max: 79, clef: 'G', staff: 1 },
-      contralto: { min: 55, max: 74, clef: 'G', staff: 1 },
-      tenor: { min: 48, max: 67, clef: 'F', staff: 2 },
-      baixo: { min: 40, max: 60, clef: 'F', staff: 2 }
+      contralto: { min: 55, max: 74, clef: 'G', staff: 2 },
+      tenor: { min: 48, max: 67, clef: 'G', staff: 3 },
+      baixo: { min: 40, max: 60, clef: 'F', staff: 4 }
     };
     const usedTessituras = tessituras || defaultTessituras;
 
@@ -242,89 +347,32 @@ export class VoiceLeadingAlgorithm implements VoiceLeadingAlgorithmInterface {
       return result;
     }
 
-    // Processa o primeiro acorde
-    let prevVoices = this.initializeFirstChord(progression.notes[0]);
-    result.push(prevVoices);
-
-    // Processa acordes subsequentes
-    for (let i = 1; i < progression.notes.length; i++) {
-      const currVoices = this.assignVoices(progression.notes[i], progression.notes[i - 1], prevVoices);
-      result.push(currVoices);
-      prevVoices = currVoices;
+    // Gera combinações válidas com classes de pitch
+    const validCombinations = this.generateValidCombinations(progression.notes);
+    if (validCombinations.length === 0) {
+      console.warn(`Nenhuma combinação válida gerada para progressão: ${JSON.stringify(progression.notes)}`);
+      // Fallback para uma atribuição simples
+      const fallbackResult: Voices[] = [];
+      progression.notes.forEach((chord: string[]) => {
+        const voices: Voices = {
+          baixo: chord[0],
+          tenor: chord[1] || chord[0],
+          contralto: chord[2] || chord[0],
+          soprano: chord[3] || chord[0]
+        };
+        fallbackResult.push(voices);
+      });
+      const tessituraAdjusted = this.applyTessiturasToResult(fallbackResult, usedTessituras);
+      return this.optimizeVoicePaths(tessituraAdjusted, usedTessituras, progression.notes);
     }
 
-    // Aplica tessituras inicialmente
-    const tessituraAdjustedResult = this.applyTessiturasToResult(result, usedTessituras);
+    // Escolhe uma combinação aleatoriamente se regenerate for true
+    const selectedCombination = regenerate
+      ? validCombinations[Math.floor(Math.random() * validCombinations.length)]
+      : validCombinations[0];
 
-    // Otimiza os trajetos para minimizar saltos
+    // Aplica tessituras e otimização para garantir qualidade
+    const tessituraAdjustedResult = this.applyTessiturasToResult(selectedCombination, usedTessituras);
     return this.optimizeVoicePaths(tessituraAdjustedResult, usedTessituras, progression.notes);
-  }
-
-  // Inicializa o primeiro acorde
-  private initializeFirstChord(chord: string[]): Voices {
-    const voices: Voices = {
-      soprano: '',
-      contralto: '',
-      tenor: '',
-      baixo: ''
-    };
-
-    voices['baixo'] = chord[0];
-    const remainingNotes = chord.slice(1);
-    voices['tenor'] = remainingNotes[0] || '';
-    voices['contralto'] = remainingNotes[1] || '';
-    voices['soprano'] = remainingNotes[2] || '';
-
-    return voices;
-  }
-
-  // Atribui vozes para acordes subsequentes
-  private assignVoices(currChord: string[], prevChord: string[], prevVoices: Voices): Voices {
-    const voices: Voices = {
-      soprano: '',
-      contralto: '',
-      tenor: '',
-      baixo: ''
-    };
-
-    voices['baixo'] = currChord[0];
-    const prevNotes = prevChord.slice(1);
-    const currNotes = currChord.slice(1);
-    const commonNotes = currNotes.filter(note => prevNotes.includes(note));
-
-    const prevVoiceMap: { [key: string]: string } = {
-      soprano: prevVoices['soprano'],
-      contralto: prevVoices['contralto'],
-      tenor: prevVoices['tenor']
-    };
-
-    const assignedNotes = new Set<string>();
-    const voiceAssignments: { [key: string]: string } = {};
-
-    for (const note of commonNotes) {
-      const prevVoice = Object.keys(prevVoiceMap).find(v => prevVoiceMap[v] === note);
-      if (prevVoice && !assignedNotes.has(note)) {
-        voiceAssignments[prevVoice] = note;
-        assignedNotes.add(note);
-      }
-    }
-
-    const remainingVoices = ['soprano', 'contralto', 'tenor'].filter(v => !voiceAssignments[v]);
-    const remainingNotes = currNotes.filter(note => !assignedNotes.has(note));
-
-    for (let i = 0; i < remainingVoices.length; i++) {
-      const voice = remainingVoices[i];
-      const note = remainingNotes[i];
-      if (note) {
-        voiceAssignments[voice] = note;
-        assignedNotes.add(note);
-      }
-    }
-
-    voices['soprano'] = voiceAssignments['soprano'] || (currNotes.length > 0 ? currNotes[0] : '');
-    voices['contralto'] = voiceAssignments['contralto'] || (currNotes.length > 1 ? currNotes[1] : '');
-    voices['tenor'] = voiceAssignments['tenor'] || (currNotes.length > 2 ? currNotes[2] : '');
-
-    return voices;
   }
 }

@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { create } from 'xmlbuilder2';
 import { Note } from '@tonaljs/tonal';
+import { Formation } from '../types';
 
 @Injectable({
   providedIn: 'root'
@@ -13,15 +14,7 @@ export class MusicXmlService {
       notes: string[][];
       voices?: { soprano: string; contralto: string; tenor: string; baixo: string }[];
     },
-    formation: {
-      name: string;
-      tessituras: {
-        soprano: { min: number; max: number; clef: string; staff: number };
-        contralto: { min: number; max: number; clef: string; staff: number };
-        tenor: { min: number; max: number; clef: string; staff: number };
-        baixo: { min: number; max: number; clef: string; staff: number };
-      };
-    }
+    formation: Formation
   ): Promise<string> {
     console.log('Gerando MusicXML para progressão:', progression, 'formação:', formation);
 
@@ -31,7 +24,6 @@ export class MusicXmlService {
     }
 
     try {
-      // Determina o número de pautas (máximo staff number)
       const staffNumbers = [
         formation.tessituras.soprano.staff,
         formation.tessituras.contralto.staff,
@@ -99,10 +91,8 @@ export class MusicXmlService {
             .txt(numberOfStaves.toString())
             .up();
 
-          // Define claves para cada pauta
           const uniqueStaffs = Array.from(new Set(staffNumbers));
           uniqueStaffs.forEach(staff => {
-            // Encontra a primeira voz com esse staff para obter a clave
             const voiceKey = Object.keys(formation.tessituras).find(
               key => formation.tessituras[key as keyof typeof formation.tessituras].staff === staff
             );
@@ -114,9 +104,17 @@ export class MusicXmlService {
                 .txt(clef)
                 .up()
                 .ele('line')
-                .txt(clef === 'G' ? '2' : clef === 'F' ? '4' : '3') // Ajuste para clave de dó, se necessário
+                .txt(clef === 'G' ? '2' : clef === 'F' ? '4' : '3')
                 .up()
                 .up();
+
+              if (formation.name === 'Violão' && clef === 'G') {
+                attributes
+                  .ele('staff-details', { number: staff.toString() })
+                  .ele('octave-shift', { type: 'down', size: '8' })
+                  .up()
+                  .up();
+              }
             }
           });
           attributes.up();
@@ -152,29 +150,29 @@ export class MusicXmlService {
         };
 
         const voicesOrder = [
-          { note: soprano, staff: formation.tessituras.soprano.staff, voiceId: 1 },
-          { note: contralto, staff: formation.tessituras.contralto.staff, voiceId: 2 },
-          { note: tenor, staff: formation.tessituras.tenor.staff, voiceId: 3 },
-          { note: baixo, staff: formation.tessituras.baixo.staff, voiceId: 4 }
+          { note: soprano, staff: formation.tessituras.soprano.staff, voiceId: formation.name === 'Violão' ? 1 : formation.name === 'Piano' ? 1 : 1 },
+          { note: contralto, staff: formation.tessituras.contralto.staff, voiceId: formation.name === 'Violão' ? 1 : formation.name === 'Piano' ? 1 : 2 },
+          { note: tenor, staff: formation.tessituras.tenor.staff, voiceId: formation.name === 'Violão' ? 1 : formation.name === 'Piano' ? 2 : 3 },
+          { note: baixo, staff: formation.tessituras.baixo.staff, voiceId: formation.name === 'Violão' ? 1 : formation.name === 'Piano' ? 2 : 4 }
         ];
 
-        // Agrupa vozes por staff
         const voicesByStaff: { [staff: number]: { note: string; voiceId: number }[] } = {};
         voicesOrder.forEach(v => {
           if (!voicesByStaff[v.staff]) {
             voicesByStaff[v.staff] = [];
           }
-          voicesByStaff[v.staff].push({ note: v.note, voiceId: v.voiceId });
+          if (v.note !== '') {
+            voicesByStaff[v.staff].push({ note: v.note, voiceId: v.voiceId });
+          }
         });
 
-        // Gera notas para cada staff
         Object.keys(voicesByStaff).forEach(staff => {
           const staffVoices = voicesByStaff[parseInt(staff)];
           staffVoices.forEach((v, noteIndex) => {
             const validatedNote = validateNote(v.note);
             if (!validatedNote) return;
             const noteEle = measure.ele('note');
-            if (noteIndex > 0) {
+            if (noteIndex > 0 && formation.name !== 'Quarteto Vocal') {
               noteEle.ele('chord').up();
             }
             const pitchEle = noteEle.ele('pitch');
@@ -189,8 +187,7 @@ export class MusicXmlService {
             noteEle.ele('staff').txt(staff).up();
           });
 
-          // Adiciona backup entre staffs, exceto para violão (uma única pauta)
-          if (formation.name !== 'Violão' && parseInt(staff) < numberOfStaves) {
+          if (numberOfStaves > 1 && parseInt(staff) < numberOfStaves) {
             measure.ele('backup').ele('duration').txt('4').up().up();
           }
         });
