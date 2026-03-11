@@ -1,53 +1,147 @@
-<div class="container">
-  <h1 class="app-title">Chord Progressions App</h1>
-
-  <div class="controls-section">
-    <div class="selectors-section">
-      <app-tonality-selector (keyChanged)="onKeyChange($event)"></app-tonality-selector>
-      <app-algorithm-selector (algorithmChanged)="onAlgorithmChange($event)"></app-algorithm-selector>
+<mat-sidenav-container class="app-sidenav-container">
+  
+  <!-- Left Sidebar (Menu) -->
+  <mat-sidenav #sidenav mode="side" [opened]="isSidenavOpen" class="app-sidenav">
+    <div class="sidenav-header">
+      <h2 class="app-brand">Chord Progressions</h2>
     </div>
+    
+    <mat-accordion multi="true" class="menu-accordion">
+      <mat-expansion-panel *ngFor="let group of groupedAlgorithms" [expanded]="true" class="domain-panel">
+        <mat-expansion-panel-header>
+          <mat-panel-title class="domain-title">
+            {{ group.domain }}
+          </mat-panel-title>
+        </mat-expansion-panel-header>
+        
+        <div *ngFor="let modeGroup of group.modes" class="mode-section">
+          <h4 class="mode-title">{{ modeGroup.mode }}</h4>
+          <mat-nav-list class="algorithm-nav-list">
+            <a mat-list-item *ngFor="let alg of modeGroup.algorithms" 
+               [class.active-alg]="alg === selectedAlgorithm"
+               (click)="onAlgorithmChange(alg)">
+              <span matListItemTitle class="alg-name">{{ alg.name.split(': ')[1] || alg.name }}</span>
+            </a>
+          </mat-nav-list>
+        </div>
+      </mat-expansion-panel>
+    </mat-accordion>
+  </mat-sidenav>
 
-    <div class="controls">
-      <label for="progressionLength" class="custom-label">Progression Length:</label>
-      <input id="progressionLength" type="number" min="3" max="10" [(ngModel)]="progressionLength"
-        (ngModelChange)="generateClicked = false; progressions = []; currentProgression = null; currentProgressionIndex = 0; progressionGenerator = null"
-        class="custom-input">
-      <label for="formationSelect" class="custom-label">Formation:</label>
-      <select id="formationSelect" [(ngModel)]="selectedFormation" (ngModelChange)="onFormationChange()"
-        class="custom-select">
-        <option *ngFor="let formation of formations" [value]="formation.name">
-          {{ formation.name }}
-        </option>
-      </select>
-      <button mat-raised-button class="generate-button" (click)="onGenerate()">
-        Generate Progression
+  <!-- Right Sidebar (Settings) -->
+  <mat-sidenav #settingsSidenav position="end" mode="over" [opened]="isSettingsOpen" (closed)="isSettingsOpen = false" class="settings-sidenav">
+    <div class="settings-header">
+      <h3>Configurações</h3>
+      <button mat-icon-button (click)="settingsSidenav.close()">
+        <span class="material-icons">close</span>
       </button>
     </div>
-  </div>
+    
+    <div class="settings-content">
+      <div class="setting-item">
+        <label for="progressionLength" class="custom-label">Tamanho da Progressão:</label>
+        <input id="progressionLength" type="number" min="3" max="10" [(ngModel)]="progressionLength"
+          (ngModelChange)="generateClicked = false; progressions = []; currentProgression = null; currentProgressionIndex = 0; progressionGenerator = null"
+          class="custom-input">
+      </div>
+        
+      <div class="setting-item">
+        <label for="bpmInput" class="custom-label">BPM:</label>
+        <input id="bpmInput" type="number" min="40" max="240" [(ngModel)]="bpm" (ngModelChange)="onBpmChange()" class="custom-input">
+      </div>
+      
+      <div class="setting-item checkbox-item">
+        <label class="custom-label">
+          <input type="checkbox" [(ngModel)]="isLooping" (ngModelChange)="onLoopToggle()"> Loop
+        </label>
+      </div>
 
-  <div *ngIf="generateClicked && currentProgression" class="results-section">
-    <div class="progression-section">
-      <app-progression-list [progressions]="[currentProgression]"></app-progression-list>
-      <div class="navigation-buttons">
-        <button mat-raised-button class="nav-button" (click)="loadPreviousProgression()"
-          [disabled]="currentProgressionIndex <= 0">
-          Previous Progression
-        </button>
-        <button mat-raised-button class="nav-button" (click)="loadNextProgression()">
-          Next Progression
-        </button>
-        <button mat-raised-button class="nav-button" (click)="regenerateVoiceLeading()">
-          Regenerate Voice-Leading
-        </button>
-        <app-music-xml-export [progression]="currentProgression" [formation]="currentFormation"
-          [algorithmIndex]="algorithmIndex">
-        </app-music-xml-export>
+      <div class="setting-item">
+        <label for="formationSelect" class="custom-label">Formação Instrumental:</label>
+        <select id="formationSelect" [(ngModel)]="selectedFormation" (ngModelChange)="onFormationChange()"
+          class="custom-select">
+          <option *ngFor="let formation of formations" [value]="formation.name">
+            {{ formation.name }}
+          </option>
+        </select>
       </div>
     </div>
+  </mat-sidenav>
 
-    <div class="score-section">
-      <app-score-display [progression]="currentProgression" [formation]="currentFormation">
-      </app-score-display>
+  <!-- Main Content -->
+  <mat-sidenav-content class="main-content">
+    <mat-toolbar color="primary" class="app-toolbar">
+      <button mat-icon-button (click)="sidenav.toggle()">
+        <span class="material-icons">menu</span>
+      </button>
+      <span class="toolbar-title">{{ selectedAlgorithm?.domain }} - Prática</span>
+      <span class="toolbar-spacer"></span>
+      <button mat-icon-button (click)="settingsSidenav.toggle()" matTooltip="Configurações">
+        <span class="material-icons">settings</span>
+      </button>
+    </mat-toolbar>
+
+    <div class="container">
+      <div class="top-dashboard">
+        <div class="tonality-wrapper">
+          <app-tonality-selector (keyChanged)="onKeyChange($event)"></app-tonality-selector>
+        </div>
+        <button mat-raised-button class="generate-button" (click)="onGenerate()">
+          Gerar Progressão
+        </button>
+      </div>
+
+      <div class="context-card" *ngIf="selectedAlgorithm">
+        <div class="context-header">
+          <span class="material-icons context-icon">auto_stories</span>
+          <h3 class="context-title">{{ selectedAlgorithm.name }}</h3>
+        </div>
+        <p class="context-description">{{ selectedAlgorithm.description }}</p>
+        
+        <div class="rules-list-container" *ngIf="selectedAlgorithm.showActiveRules !== false">
+          <h4 class="rules-list-title">Regras de Condução Ativas:</h4>
+          <ul class="rules-list">
+            <li *ngFor="let rule of getActiveRulesDescriptions()">
+              <span class="material-icons rule-icon" [ngClass]="{'active': rule.active, 'inactive': !rule.active}">
+                {{ rule.active ? 'check_circle' : 'cancel' }}
+              </span>
+              <span class="rule-text" [ngClass]="{'inactive-text': !rule.active}">{{ rule.text }}</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div *ngIf="generateClicked && currentProgression" class="results-section">
+        <div class="progression-section">
+          <app-progression-list [progressions]="[currentProgression]" [currentPlayingIndex]="currentPlayingIndex"></app-progression-list>
+          <div class="navigation-buttons">
+            <button mat-raised-button class="nav-button" (click)="loadPreviousProgression()"
+              [disabled]="currentProgressionIndex <= 0">
+              <span class="material-icons">skip_previous</span> Prev
+            </button>
+            <button mat-raised-button class="nav-button" (click)="loadNextProgression()">
+              Next <span class="material-icons">skip_next</span>
+            </button>
+            <button mat-raised-button class="nav-button" (click)="regenerateVoiceLeading()">
+              <span class="material-icons">refresh</span> Regenerate Voices
+            </button>
+            <button mat-raised-button class="nav-button play-button" color="primary" (click)="playCurrentProgression()">
+              <span class="material-icons">play_arrow</span> Play
+            </button>
+            <button mat-raised-button class="nav-button stop-button" color="warn" (click)="stopCurrentProgression()">
+              <span class="material-icons">stop</span> Stop
+            </button>
+            <app-music-xml-export [progression]="currentProgression" [formation]="currentFormation"
+              [algorithmIndex]="algorithmIndex">
+            </app-music-xml-export>
+          </div>
+        </div>
+
+        <div class="score-section">
+          <app-score-display [progression]="currentProgression" [formation]="currentFormation" [currentPlayingIndex]="currentPlayingIndex">
+          </app-score-display>
+        </div>
+      </div>
     </div>
-  </div>
-</div>
+  </mat-sidenav-content>
+</mat-sidenav-container>

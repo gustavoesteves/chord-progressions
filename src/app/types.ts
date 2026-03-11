@@ -29,14 +29,37 @@ export interface Tessituras {
     soprano: Tessitura;
 }
 
+import { InjectionToken } from '@angular/core';
+
+export interface VoiceLeadingRules {
+    penalizeParallelFifths: boolean;
+    penalizeParallelOctaves: boolean;
+    penalizeVoiceCrossing: boolean;
+    maxLeapInterval: number;
+    resolveSevenths: boolean;
+    resolveLeadingTone: boolean;
+}
+
+export type MusicalDomain = 'Harmonia Clássica' | 'Harmonia Funcional' | 'Harmonia Modal' | 'Contraponto';
+export type TonalityMode = 'Maior' | 'Menor' | 'N/A';
+
 export interface ProgressionAlgorithm {
     name: string;
+    description?: string;
+    domain: MusicalDomain;
+    mode: TonalityMode;
+    showActiveRules?: boolean;
+    defaultRules?: Partial<VoiceLeadingRules>;
     generateProgressions: (tonality: string, length: number) => { roman: string[], transposed: string[], notes: string[][], functions: string[][] }[] | Iterator<{ roman: string[], transposed: string[], notes: string[][], functions: string[][] }>;
 }
+
+export const PROGRESSION_ALGORITHMS = new InjectionToken<ProgressionAlgorithm[]>('PROGRESSION_ALGORITHMS');
 
 export interface VoiceLeadingAlgorithmInterface {
     applyVoiceLeading(
         progression: { roman: string[], transposed: string[], notes: string[][] },
-        tessituras?: Tessituras
+        tessituras?: Tessituras,
+        forceRegenerate?: boolean,
+        rules?: VoiceLeadingRules
     ): Voices[];
 }

@@ -1,7 +1,5 @@
-import { Injectable } from '@angular/core';
-import { ProgressionAlgorithm } from '../types';
-import { TonalTriadProgressionAlgorithm } from './progression-algorithms/tonal-triad-progression-algorithm';
-import { InvertedTriadProgressionAlgorithm } from './progression-algorithms/inverted-triad-progression-algorithm';
+import { Injectable, Inject, Optional } from '@angular/core';
+import { ProgressionAlgorithm, PROGRESSION_ALGORITHMS, VoiceLeadingRules } from '../types';
 import { VoiceLeadingAlgorithm } from './voice-leading/voice-leading-algorithm';
 
 @Injectable({
@@ -11,11 +9,10 @@ export class ChordProgressionsService {
   private algorithms: ProgressionAlgorithm[];
 
   constructor(
-    tonalTriadAlgorithm: TonalTriadProgressionAlgorithm,
-    invertedTriadAlgorithm: InvertedTriadProgressionAlgorithm,
+    @Optional() @Inject(PROGRESSION_ALGORITHMS) injectedAlgorithms: ProgressionAlgorithm[] | null,
     private voiceLeadingAlgorithm: VoiceLeadingAlgorithm
   ) {
-    this.algorithms = [tonalTriadAlgorithm, invertedTriadAlgorithm];
+    this.algorithms = injectedAlgorithms || [];
   }
 
   applyVoiceLeading(progression: {
@@ -23,8 +20,8 @@ export class ChordProgressionsService {
     transposed: string[];
     notes: string[][];
     functions: string[][];
-  }): { soprano: string; contralto: string; tenor: string; baixo: string }[] {
-    return this.voiceLeadingAlgorithm.applyVoiceLeading(progression);
+  }, rules?: VoiceLeadingRules): { soprano: string; contralto: string; tenor: string; baixo: string }[] {
+    return this.voiceLeadingAlgorithm.applyVoiceLeading(progression, undefined, false, rules);
   }
 
   getAvailableAlgorithms(): ProgressionAlgorithm[] {
@@ -34,7 +31,8 @@ export class ChordProgressionsService {
   getProgressionsGenerator(
     tonality: string,
     progressionLength: number,
-    algorithm: ProgressionAlgorithm
+    algorithm: ProgressionAlgorithm,
+    rules?: VoiceLeadingRules
   ): Generator<
     {
       roman: string[];
@@ -47,14 +45,15 @@ export class ChordProgressionsService {
   > {
     const progressions = algorithm.generateProgressions(tonality, progressionLength);
     if (Array.isArray(progressions)) {
-      return this.generateFromArray(progressions);
+      return this.generateFromArray(progressions, rules);
     } else {
-      return this.generateFromIterator(progressions);
+      return this.generateFromIterator(progressions, rules);
     }
   }
 
   private *generateFromArray(
-    progressions: { roman: string[]; transposed: string[]; notes: string[][]; functions: string[][] }[]
+    progressions: { roman: string[]; transposed: string[]; notes: string[][]; functions: string[][] }[],
+    rules?: VoiceLeadingRules
   ): Generator<
     {
       roman: string[];
@@ -66,7 +65,7 @@ export class ChordProgressionsService {
     undefined
   > {
     for (const progression of progressions) {
-      const voices = this.applyVoiceLeading(progression);
+      const voices = this.applyVoiceLeading(progression, rules);
       yield {
         roman: progression.roman,
         transposed: progression.transposed,
@@ -77,7 +76,8 @@ export class ChordProgressionsService {
   }
 
   private *generateFromIterator(
-    progressions: Iterator<{ roman: string[]; transposed: string[]; notes: string[][]; functions: string[][] }>
+    progressions: Iterator<{ roman: string[]; transposed: string[]; notes: string[][]; functions: string[][] }>,
+    rules?: VoiceLeadingRules
   ): Generator<
     {
       roman: string[];
@@ -91,7 +91,7 @@ export class ChordProgressionsService {
     let next = progressions.next();
     while (!next.done) {
       const progression = next.value;
-      const voices = this.applyVoiceLeading(progression);
+      const voices = this.applyVoiceLeading(progression, rules);
       yield {
         roman: progression.roman,
         transposed: progression.transposed,

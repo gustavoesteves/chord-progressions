@@ -1,4 +1,4 @@
-import { ProgressionAlgorithm } from '../../types';
+import { ProgressionAlgorithm, VoiceLeadingRules } from '../../types';
 import { TonalityService } from '../../tonality/tonality.service';
 import { Injectable } from '@angular/core';
 import { Chord } from '@tonaljs/tonal';
@@ -7,7 +7,19 @@ import { Chord } from '@tonaljs/tonal';
   providedIn: 'root'
 })
 export class TonalTriadProgressionAlgorithm implements ProgressionAlgorithm {
-  name = 'Encadeamento das tríades tonais';
+  name = 'Capítulo 1: Encadeamento das tríades tonais';
+  description = 'Neste exercício introdutório, exploramos a fundação da harmonia conectando acordes de três notas no estado fundamental. A regra de ouro é o caminho mais curto: vozes devem se mover o mínimo possível, e notas comuns devem ser mantidas na mesma voz.';
+  domain: 'Harmonia Clássica' = 'Harmonia Clássica';
+  mode: 'Maior' = 'Maior';
+  showActiveRules = false;
+  defaultRules: Partial<VoiceLeadingRules> = {
+    penalizeParallelFifths: true,
+    penalizeParallelOctaves: true,
+    penalizeVoiceCrossing: true,
+    maxLeapInterval: 12,
+    resolveSevenths: false, // No sevenths in basic triads
+    resolveLeadingTone: false
+  };
   private targetLength: number = 0;
 
   constructor(private tonalityService: TonalityService) {}

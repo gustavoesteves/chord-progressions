@@ -1,12 +1,32 @@
 h1 {
-    text-align: center;
-    font-family: Arial, sans-serif;
-  }
-  
-  table {
-    font-family: Arial, sans-serif;
-  }
-  
-  td, th {
-    border: 1px solid #ddd;
-  }
+  text-align: center;
+  font-family: Arial, sans-serif;
+}
+
+table {
+  font-family: Arial, sans-serif;
+}
+
+td, th {
+  border: 1px solid #ddd;
+}
+
+.chord-token {
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease-in-out;
+  display: inline-block;
+}
+
+.chord-arrow {
+  color: #999;
+  margin: 0 4px;
+}
+
+.active-chord {
+  background-color: #ffe0b2; /* Laranja suave */
+  color: #e65100;
+  font-weight: bold;
+  transform: scale(1.1);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}

@@ -6,14 +6,20 @@ import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatSidenavModule } from '@angular/material/sidenav';
+import { MatListModule } from '@angular/material/list';
+import { MatToolbarModule } from '@angular/material/toolbar';
+import { MatIconModule } from '@angular/material/icon';
+import { MatExpansionModule } from '@angular/material/expansion';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { ProgressionListComponent } from './chord-progressions/progression-list/progression-list.component';
-import { AlgorithmSelectorComponent } from './chord-progressions/algorithm-selector/algorithm-selector.component';
 import { ScoreDisplayComponent } from './score-display/score-display.component';
 import { MusicXmlExportComponent } from './score-display/music-xml-export.component';
 import { TonalitySelectorComponent } from './tonality/tonality-selector/tonality-selector.component';
 import { ChordProgressionsService } from './chord-progressions/chord-progressions.service';
 import { VoiceLeadingAlgorithm } from './chord-progressions/voice-leading/voice-leading-algorithm';
-import { ProgressionAlgorithm, Formation } from './types';
+import { AudioPlaybackService } from './audio-playback.service';
+import { ProgressionAlgorithm, Formation, VoiceLeadingRules } from './types';
 
 @Component({
   selector: 'app-root',
@@ -27,8 +33,13 @@ import { ProgressionAlgorithm, Formation } from './types';
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
+    MatSidenavModule,
+    MatListModule,
+    MatToolbarModule,
+    MatIconModule,
+    MatExpansionModule,
+    MatTooltipModule,
     ProgressionListComponent,
-    AlgorithmSelectorComponent,
     ScoreDisplayComponent,
     MusicXmlExportComponent,
     TonalitySelectorComponent
@@ -38,6 +49,19 @@ import { ProgressionAlgorithm, Formation } from './types';
 export class AppComponent {
   selectedTonality: string = 'C';
   selectedAlgorithm: ProgressionAlgorithm | null = null;
+  
+  // Grouped Algorithms
+  groupedAlgorithms: {
+    domain: string;
+    modes: {
+      mode: string;
+      algorithms: ProgressionAlgorithm[];
+    }[];
+  }[] = [];
+  
+  // Sidebar state
+  isSidenavOpen: boolean = true;
+  isSettingsOpen: boolean = false;
   selectedFormation: string = 'Quarteto Vocal';
   progressionLength: number = 4;
   generateClicked: boolean = false;
@@ -107,11 +131,40 @@ export class AppComponent {
   ];
   algorithmIndex: number = 0;
 
+  // Audio Playback State
+  bpm: number = 80;
+  isLooping: boolean = false;
+  isPlaying: boolean = false;
+  currentPlayingIndex: number | null = null;
+
+  // Voice Leading Rules State (Schoenberg Lab)
+  voiceLeadingRules: VoiceLeadingRules = {
+    penalizeParallelFifths: true,
+    penalizeParallelOctaves: true,
+    penalizeVoiceCrossing: true,
+    maxLeapInterval: 12,
+    resolveSevenths: false,
+    resolveLeadingTone: false
+  };
+
   constructor(
     private chordProgressionsService: ChordProgressionsService,
-    private voiceLeadingService: VoiceLeadingAlgorithm
+    private voiceLeadingService: VoiceLeadingAlgorithm,
+    private audioPlaybackService: AudioPlaybackService
   ) {
-    this.updateAlgorithmIndex();
+    this.groupAlgorithms();
+    
+    // Auto-select the first available algorithm if none is selected
+    if (this.groupedAlgorithms.length > 0 && this.groupedAlgorithms[0].modes.length > 0 && this.groupedAlgorithms[0].modes[0].algorithms.length > 0) {
+      this.selectedAlgorithm = this.groupedAlgorithms[0].modes[0].algorithms[0];
+      this.updateAlgorithmIndex();
+    }
+    
+    // Supscribe to Audio Playback State
+    this.audioPlaybackService.bpm$.subscribe(val => this.bpm = val);
+    this.audioPlaybackService.isLooping$.subscribe(val => this.isLooping = val);
+    this.audioPlaybackService.isPlaying$.subscribe(val => this.isPlaying = val);
+    this.audioPlaybackService.currentIndex$.subscribe(val => this.currentPlayingIndex = val);
   }
 
   get currentFormation(): Formation | null {
@@ -125,6 +178,7 @@ export class AppComponent {
     this.currentProgression = null;
     this.currentProgressionIndex = 0;
     this.progressionGenerator = null;
+    this.audioPlaybackService.stop();
   }
 
   onAlgorithmChange(algorithm: ProgressionAlgorithm): void {
@@ -135,6 +189,7 @@ export class AppComponent {
     this.currentProgression = null;
     this.currentProgressionIndex = 0;
     this.progressionGenerator = null;
+    this.audioPlaybackService.stop();
   }
 
   onFormationChange(): void {
@@ -145,7 +200,7 @@ export class AppComponent {
         notes: this.currentProgression.notes,
         functions: this.currentProgression.functions || []
       };
-      const voices = this.voiceLeadingService.applyVoiceLeading(inputProgression, this.currentFormation?.tessituras);
+      const voices = this.voiceLeadingService.applyVoiceLeading(inputProgression, this.currentFormation?.tessituras, false, this.voiceLeadingRules);
       this.progressions[this.currentProgressionIndex] = {
         ...this.currentProgression,
         voices
@@ -164,12 +219,14 @@ export class AppComponent {
     this.progressionGenerator = this.chordProgressionsService.getProgressionsGenerator(
       this.selectedTonality,
       this.progressionLength,
-      this.selectedAlgorithm
+      this.selectedAlgorithm,
+      this.voiceLeadingRules
     );
     this.loadNextProgression();
   }
 
   loadNextProgression(): void {
+    this.audioPlaybackService.stop();
     if (!this.progressionGenerator) return;
     const next = this.progressionGenerator.next();
     if (!next.done && next.value) {
@@ -179,7 +236,7 @@ export class AppComponent {
         notes: next.value.notes,
         functions: next.value.functions || []
       };
-      const voices = this.voiceLeadingService.applyVoiceLeading(inputProgression, this.currentFormation?.tessituras);
+      const voices = this.voiceLeadingService.applyVoiceLeading(inputProgression, this.currentFormation?.tessituras, false, this.voiceLeadingRules);
       console.log('New progression voices:', JSON.stringify(voices));
       const progression = {
         ...inputProgression,
@@ -192,12 +249,14 @@ export class AppComponent {
   }
 
   loadPreviousProgression(): void {
+    this.audioPlaybackService.stop();
     if (this.currentProgressionIndex <= 0) return;
     this.currentProgressionIndex--;
     this.currentProgression = { ...this.progressions[this.currentProgressionIndex] };
   }
 
   regenerateVoiceLeading(): void {
+    this.audioPlaybackService.stop();
     if (this.currentProgression) {
       console.log('Previous voices:', JSON.stringify(this.currentProgression.voices));
       const inputProgression = {
@@ -206,7 +265,7 @@ export class AppComponent {
         notes: this.currentProgression.notes,
         functions: this.currentProgression.functions || []
       };
-      const voices = this.voiceLeadingService.applyVoiceLeading(inputProgression, this.currentFormation?.tessituras, true);
+      const voices = this.voiceLeadingService.applyVoiceLeading(inputProgression, this.currentFormation?.tessituras, true, this.voiceLeadingRules);
       console.log('Regenerated voices:', JSON.stringify(voices));
       this.progressions[this.currentProgressionIndex] = {
         ...this.currentProgression,
@@ -216,6 +275,48 @@ export class AppComponent {
     }
   }
 
+  playCurrentProgression(): void {
+    if (this.currentProgression && this.currentProgression.voices) {
+      this.audioPlaybackService.playProgression(this.currentProgression.voices);
+    }
+  }
+
+  stopCurrentProgression(): void {
+    this.audioPlaybackService.stop();
+  }
+
+  onBpmChange(): void {
+    this.audioPlaybackService.setBpm(this.bpm);
+  }
+
+  onLoopToggle(): void {
+    this.audioPlaybackService.setLoop(this.isLooping);
+  }
+
+  private groupAlgorithms(): void {
+    const algos = this.chordProgressionsService.getAvailableAlgorithms();
+    const domainMap = new Map<string, Map<string, ProgressionAlgorithm[]>>();
+    
+    algos.forEach(alg => {
+      if (!domainMap.has(alg.domain)) {
+        domainMap.set(alg.domain, new Map());
+      }
+      const modeMap = domainMap.get(alg.domain)!;
+      if (!modeMap.has(alg.mode)) {
+        modeMap.set(alg.mode, []);
+      }
+      modeMap.get(alg.mode)!.push(alg);
+    });
+
+    this.groupedAlgorithms = Array.from(domainMap.entries()).map(([domain, modeMap]) => ({
+      domain,
+      modes: Array.from(modeMap.entries()).map(([mode, algorithms]) => ({
+        mode,
+        algorithms
+      }))
+    }));
+  }
+
   private updateAlgorithmIndex(): void {
     const algorithms = this.chordProgressionsService.getAvailableAlgorithms();
     this.algorithmIndex = algorithms.findIndex(alg => alg === this.selectedAlgorithm);
@@ -223,5 +324,35 @@ export class AppComponent {
       this.selectedAlgorithm = algorithms[0];
       this.algorithmIndex = 0;
     }
+    
+    // Auto-apply algorithm default rules if any exist
+    if (this.selectedAlgorithm && this.selectedAlgorithm.defaultRules) {
+       this.voiceLeadingRules = { ...this.voiceLeadingRules, ...this.selectedAlgorithm.defaultRules };
+    }
+  }
+
+  getActiveRulesDescriptions(): { text: string; active: boolean }[] {
+    return [
+      {
+        text: 'Proibir 5as e 8as Paralelas',
+        active: this.voiceLeadingRules.penalizeParallelFifths && this.voiceLeadingRules.penalizeParallelOctaves
+      },
+      {
+        text: 'Proibir Cruzamento de Vozes',
+        active: this.voiceLeadingRules.penalizeVoiceCrossing
+      },
+      {
+        text: 'Resolver Sétimas Descendo',
+        active: this.voiceLeadingRules.resolveSevenths
+      },
+      {
+        text: 'Resolver Sensível Subindo',
+        active: this.voiceLeadingRules.resolveLeadingTone
+      },
+      {
+        text: `Salto Máximo: ${this.voiceLeadingRules.maxLeapInterval} semitons`,
+        active: true // Always an active rule
+      }
+    ];
   }
 }

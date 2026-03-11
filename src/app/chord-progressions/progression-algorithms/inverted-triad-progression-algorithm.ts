@@ -7,7 +7,11 @@ import { Chord } from '@tonaljs/tonal';
   providedIn: 'root'
 })
 export class InvertedTriadProgressionAlgorithm implements ProgressionAlgorithm {
-  name = 'Encadeamento com tríades invertidas';
+  name = 'Capítulo 1b: Encadeamento com tríades invertidas';
+  description = 'Exploração de progressões utilizando tríades nas suas primeira e segunda inversões. O uso de baixos trocados permite linhas de graves mais melódicas e prepara para a condução de vozes mais madura.';
+  domain: 'Harmonia Clássica' = 'Harmonia Clássica';
+  mode: 'Maior' = 'Maior';
+  showActiveRules = false;
   private progressionLength: number = 0;
 
   constructor(private tonalityService: TonalityService) {}

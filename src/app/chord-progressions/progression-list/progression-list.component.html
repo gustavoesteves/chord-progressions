@@ -3,11 +3,23 @@
     <table mat-table [dataSource]="progressions">
       <ng-container matColumnDef="roman">
         <th mat-header-cell *matHeaderCellDef> Roman Numerals </th>
-        <td mat-cell *matCellDef="let progression"> {{ formatProgression(progression.roman) }} </td>
+        <td mat-cell *matCellDef="let progression"> 
+          <span *ngFor="let chord of progression.roman; let i = index" 
+                class="chord-token" 
+                [class.active-chord]="i === currentPlayingIndex">
+            {{ chord }}<span *ngIf="i < progression.roman.length - 1" class="chord-arrow"> &rarr; </span>
+          </span>
+        </td>
       </ng-container>
       <ng-container matColumnDef="transposed">
         <th mat-header-cell *matHeaderCellDef> Chords </th>
-        <td mat-cell *matCellDef="let progression"> {{ formatProgression(progression.transposed) }} </td>
+        <td mat-cell *matCellDef="let progression"> 
+          <span *ngFor="let chord of progression.transposed; let i = index" 
+                class="chord-token" 
+                [class.active-chord]="i === currentPlayingIndex">
+            {{ chord }}<span *ngIf="i < progression.transposed.length - 1" class="chord-arrow"> &rarr; </span>
+          </span>
+        </td>
       </ng-container>
       <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
       <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>

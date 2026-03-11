@@ -23,6 +23,7 @@ export class ScoreDisplayComponent implements AfterViewInit, OnChanges {
   @ViewChild('osmdContainer', { static: false }) osmdContainer!: ElementRef;
   @Input() progression: { roman: string[], transposed: string[], notes: string[][], voices?: { soprano: string, contralto: string, tenor: string, baixo: string }[] } | null = null;
   @Input() formation: Formation | null = null;
+  @Input() currentPlayingIndex: number | null = null;
   private osmd: OpenSheetMusicDisplay | null = null;
 
   constructor(private musicXmlService: MusicXmlService) {}
@@ -36,6 +37,30 @@ export class ScoreDisplayComponent implements AfterViewInit, OnChanges {
     if (changes['progression'] && this.osmd) {
       console.log('Progression changed:', this.progression);
       await this.setupOsmd();
+    }
+
+    // Lida com as mudanças de índice para o Cursor do OSMD
+    if (changes['currentPlayingIndex'] && this.osmd && this.osmd.cursor) {
+      const index = changes['currentPlayingIndex'].currentValue;
+      if (index === null) {
+        this.osmd.cursor.hide();
+        this.osmd.cursor.reset();
+      } else {
+        if (index === 0) {
+          this.osmd.cursor.show();
+          this.osmd.cursor.reset();
+        } else {
+          // O cursor.next() avança uma nota/acorde a cada chamada.
+          // Como Tone.Part emite progressivamente 0, 1, 2, 3...
+          // E o Angular chama ngOnChanges pra cada um, podemos dar um next().
+          // Idealmente recriamos a posição do zero para evitar desfoque se o usuário der Loop.
+          this.osmd.cursor.show();
+          this.osmd.cursor.reset();
+          for(let i = 0; i < index; i++) {
+            this.osmd.cursor.next();
+          }
+        }
+      }
     }
   }
 
